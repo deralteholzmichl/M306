@@ -2,7 +2,7 @@ package com.ubs.helper;
 
 public enum ScenePath {
 
-    Login("/com/ubs.controller/hello-view.fxml");
+    Login("/com/ubs/hello-view.fxml");
 
     private final String path;
 
