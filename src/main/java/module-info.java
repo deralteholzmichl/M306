@@ -6,9 +6,6 @@ module com.ubs.controller {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.sql;
-    requires com.fasterxml.jackson.annotation;
-    requires com.fasterxml.jackson.core;
-    requires com.fasterxml.jackson.databind;
     requires java.xml.bind;
 
     opens com.ubs.controller to javafx.fxml;
