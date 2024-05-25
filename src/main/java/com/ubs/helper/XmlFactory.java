@@ -1,5 +1,6 @@
 package com.ubs.helper;
 
+import com.ubs.Model.esl.ESLBillingData;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.Model.sdat.ValidatedMeteredData_12;
 import com.ubs.Model.sdat.ValidatedMeteredData_13;
@@ -19,26 +20,29 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class XmlFactory {
-    public static ValidatedMeteredData convertToValidatedMeteredData_12_14(String Path) throws JAXBException {
+    public static ValidatedMeteredData convertToValidatedMeteredData_12_13_14(String Path) throws JAXBException {
         File xmlFile = new File(Path);
         try {
             JAXBContext context = JAXBContext.newInstance(ValidatedMeteredData_12.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            ValidatedMeteredData_12 convertedXml = (ValidatedMeteredData_12) unmarshaller.unmarshal(xmlFile);
-            return convertedXml;
+            return (ValidatedMeteredData_12) unmarshaller.unmarshal(xmlFile);
         } catch (UnmarshalException e) {
             try {
                 JAXBContext context = JAXBContext.newInstance(ValidatedMeteredData_14.class);
                 Unmarshaller unmarshaller = context.createUnmarshaller();
-                ValidatedMeteredData_14 convertedXml = (ValidatedMeteredData_14) unmarshaller.unmarshal(xmlFile);
-                return convertedXml;
+                return (ValidatedMeteredData_14) unmarshaller.unmarshal(xmlFile);
             }catch (UnmarshalException e1){
                 JAXBContext context = JAXBContext.newInstance(ValidatedMeteredData_13.class);
                 Unmarshaller unmarshaller = context.createUnmarshaller();
-                ValidatedMeteredData_13 convertedXml = (ValidatedMeteredData_13) unmarshaller.unmarshal(xmlFile);
-                return convertedXml;
+                return (ValidatedMeteredData_13) unmarshaller.unmarshal(xmlFile);
             }
         }
+    }
+    public static ESLBillingData convertToESLBillingData(String Path) throws JAXBException {
+        File xmlFile = new File(Path);
+        JAXBContext context = JAXBContext.newInstance(ESLBillingData.class);
+        Unmarshaller unmarshaller = context.createUnmarshaller();
+        return (ESLBillingData) unmarshaller.unmarshal(xmlFile);
     }
 
 }
