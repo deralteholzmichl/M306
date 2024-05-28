@@ -54,11 +54,10 @@ public class StatisticDrawer {
         }
 
         // Anzahl der Unterteilungen für die X- und Y-Achsenbeschriftungen
-        int UNTERTEILUNGENX = DatenBeschrX.size()-1;
         int UNTERTEILUNGENY = 10;
 
         // Passe die Schriftgröße an, wenn zu viele Unterteilungen vorhanden sind
-        if (UNTERTEILUNGENX > 10 || UNTERTEILUNGENY > 10) {
+        if (UNTERTEILUNGENY > 10) {
             gc.setFont(Font.font(10));
         }
 
@@ -75,9 +74,12 @@ public class StatisticDrawer {
 
         // Zeichne Beschriftungen auf der X-Achse
         if (BESCHRIFTUNGX) {
+            int UNTERTEILUNGENX = DatenBeschrX.size()-1;
+            if (UNTERTEILUNGENX > 10) {
+                gc.setFont(Font.font(10));
+            }
             // Nullpunkt
            // gc.fillText(DatenBeschrX.get(0), PADDING, canvas.getHeight() - PADDING / UNTERTEILUNGENX);
-            int lasi= 0;
             for (int i = 0; i <= UNTERTEILUNGENX; i++) {
                 // Zeichne Markierungen und Beschriftungen auf der X-Achse
                 if (i == 0){
