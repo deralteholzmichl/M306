@@ -6,8 +6,8 @@
 <Pane fx:id="pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.ubs.controller.HelloController">
    <children>
       <Button fx:id="Button1" layoutX="23.0" layoutY="14.0" mnemonicParsing="false" onAction="#onHelloButtonClick" text="import xml" />
-      <Button fx:id="Button2" layoutX="108.0" layoutY="14.0" mnemonicParsing="false" onAction="#draw" text="Beispiel Zeichnen" />
-      <Button fx:id="Button3" layoutX="384.0" layoutY="14.0" mnemonicParsing="false" onAction="#delete" text="entfernen" />
-      <Button fx:id="Button4" layoutX="227.0" layoutY="14.0" mnemonicParsing="false" onAction="#drawBar" text="Säulendiagram zeichnen" />
+      <Button fx:id="Button2" layoutX="108.0" layoutY="14.0" mnemonicParsing="false" onAction="#draw" text="Liniendiagram Zeichnen" />
+      <Button fx:id="Button3" layoutX="433.0" layoutY="14.0" mnemonicParsing="false" onAction="#delete" text="entfernen" />
+      <Button fx:id="Button4" layoutX="268.0" layoutY="14.0" mnemonicParsing="false" onAction="#drawBar" text="Säulendiagram zeichnen" />
    </children>
 </Pane>
