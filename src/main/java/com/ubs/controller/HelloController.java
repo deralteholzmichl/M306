@@ -3,6 +3,7 @@ package com.ubs.controller;
 import com.ubs.Model.esl.ESLBillingData;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.Model.sdat.ValidatedMeteredData_12;
+import com.ubs.helper.BarChartEntry;
 import com.ubs.helper.StatisticDrawer;
 import com.ubs.helper.XmlFactory;
 import javafx.event.ActionEvent;
@@ -27,6 +28,22 @@ public class HelloController {
     @FXML
     private Button Button3;
     @FXML
+    private Button Button4;
+    @FXML
+    void drawBar(ActionEvent event) {
+        pane.getChildren().remove(canvas);
+        ArrayList<BarChartEntry> sampleList = new ArrayList<>();
+        sampleList.add(new BarChartEntry("Test1", 10));
+        sampleList.add(new BarChartEntry("Test2", 0.4));
+        sampleList.add(new BarChartEntry("Test3", 20));
+        sampleList.add(new BarChartEntry("Test4", 5));
+
+        canvas = StatisticDrawer.drawBarChart(200,200,40,sampleList);
+        canvas.setLayoutY(100);
+        pane.getChildren().add(canvas);
+
+    }
+    @FXML
     void delete(ActionEvent event) {
         pane.getChildren().remove(canvas);
     }
@@ -35,6 +52,7 @@ public class HelloController {
 
     @FXML
     void draw(ActionEvent event) {
+        pane.getChildren().remove(canvas);
         //Startwert der Grafik ist der erste Wert der jeweiligen Liste
         //MAX_HEIGHT: Wie gross die grafik sein soll
         //MAX_WIDTH: Wie breit die grafik sein soll
@@ -78,6 +96,10 @@ public class HelloController {
         System.out.println("Files selected: " + selectedFiles.size());
         System.out.println("Sdat Files converted: " + convertedSdatFiles.size());
         System.out.println("Esl Files converted: " + convertedEslFiles.size());
+    }
+    public void initialize() {
+        pane.setPrefWidth(500);
+        pane.setPrefHeight(500);
     }
 
 }
