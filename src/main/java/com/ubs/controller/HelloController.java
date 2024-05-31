@@ -11,7 +11,10 @@ import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -79,13 +82,13 @@ public class HelloController {
             if (!file.getPath().contains(".xml")) {
                 return;
             }
-            if (file.getPath().contains("EdmRegisterWertExport")){
+            if (file.getPath().contains("EdmRegisterWertExport")) {
                 try {
                     convertedEslFiles.add(XmlFactory.convertToESLBillingData(file.getPath()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }else {
+            } else {
                 try {
                     convertedSdatFiles.add(XmlFactory.convertToValidatedMeteredData_12_13_14(file.getPath()));
                 } catch (Exception e) {
@@ -93,13 +96,47 @@ public class HelloController {
                 }
             }
         }
+        //Files werden einspeisung und bezug zugeordnet und Duplikate werden aussortiert für Sdat files
+        List<String> readedElements = new ArrayList<>();
+        List<ValidatedMeteredData> validatedMeteredDataListEinspeisen = new ArrayList<>();
+        List<ValidatedMeteredData> validatedMeteredDataListBezug = new ArrayList<>();
+        if (!convertedSdatFiles.isEmpty()){
+            for (ValidatedMeteredData validatedMeteredData : convertedSdatFiles) {
+                validatedMeteredData.getValidatedMeteredData_HeaderInformation();
+                if(!readedElements.contains(validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation())){
+                    readedElements.add(validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation());
+                    if (validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getDocumentID().contains("ID742")) {
+                        validatedMeteredDataListBezug.add(validatedMeteredData);
+                    } else {
+                        validatedMeteredDataListEinspeisen.add(validatedMeteredData);
+                    }
+                }
+            }
+        }
+
+
+
         System.out.println("Files selected: " + selectedFiles.size());
+        System.out.println("eindeutige Files: " + readedElements.size());
         System.out.println("Sdat Files converted: " + convertedSdatFiles.size());
         System.out.println("Esl Files converted: " + convertedEslFiles.size());
     }
     public void initialize() {
-        pane.setPrefWidth(500);
+        //Initialize the Pane
+        pane.setPrefWidth(600);
         pane.setPrefHeight(500);
+        Button1.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
+        Button2.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
+        Button3.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
+        Button4.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
+        Button1.setTextFill(Color.WHITE);
+        Button2.setTextFill(Color.WHITE);
+        Button3.setTextFill(Color.WHITE);
+        Button4.setTextFill(Color.WHITE);
+        Button1.setFont(new javafx.scene.text.Font("Arial", 12));
+        Button2.setFont(new javafx.scene.text.Font("Arial", 12));
+        Button3.setFont(new javafx.scene.text.Font("Arial", 12));
+        Button4.setFont(new javafx.scene.text.Font("Arial", 12));
     }
 
 }
