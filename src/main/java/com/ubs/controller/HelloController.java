@@ -113,8 +113,17 @@ public class HelloController {
                 }
             }
         }
-
-
+        //Duplikate werden aussortiert für Esl files
+        readedElements = new ArrayList<>();
+        List<ESLBillingData> eindeutigeESLFiles = new ArrayList<>();
+        if (!convertedEslFiles.isEmpty()){
+            for (ESLBillingData eslBillingData : convertedEslFiles) {
+                if(!readedElements.contains(eslBillingData.getHeader().getCreated())){
+                    readedElements.add(eslBillingData.getHeader().getCreated());
+                    eindeutigeESLFiles.add(eslBillingData);
+                }
+            }
+        }
 
         System.out.println("Files selected: " + selectedFiles.size());
         System.out.println("eindeutige Files: " + readedElements.size());
