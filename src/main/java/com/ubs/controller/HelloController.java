@@ -1,5 +1,6 @@
 package com.ubs.controller;
 
+import com.ubs.Model.CombinedData;
 import com.ubs.Model.esl.ESLBillingData;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.Model.sdat.ValidatedMeteredData_12;
@@ -20,7 +21,11 @@ import javafx.stage.Stage;
 
 import javax.xml.bind.JAXBException;
 import java.io.File;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class HelloController {
@@ -96,7 +101,7 @@ public class HelloController {
                 }
             }
         }
-        //Files werden einspeisung und bezug zugeordnet und Duplikate werden aussortiert für Sdat files
+        //Sdat Files werden einspeisung und bezug zugeordnet und Duplikate werden aussortiert
         List<String> readedElements = new ArrayList<>();
         List<ValidatedMeteredData> validatedMeteredDataListEinspeisen = new ArrayList<>();
         List<ValidatedMeteredData> validatedMeteredDataListBezug = new ArrayList<>();
@@ -124,12 +129,58 @@ public class HelloController {
                 }
             }
         }
+        eindeutigeESLFiles.sort((o1, o2) -> o1.compareTo(o2.getHeader().getCreated()));
+        validatedMeteredDataListEinspeisen.sort((o1, o2) -> o1.compareTo(o2.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation()));
+        validatedMeteredDataListBezug.sort((o1, o2) -> o1.compareTo(o2.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation()));
+        List<List<CombinedData>> BezugData = CombineData(eindeutigeESLFiles,validatedMeteredDataListBezug);
+        List<List<CombinedData>> EinspeisenData = CombineData(eindeutigeESLFiles,validatedMeteredDataListEinspeisen);
 
+
+
+
+        System.out.println(EinspeisenData);
+        System.out.println(BezugData);
         System.out.println("Files selected: " + selectedFiles.size());
         System.out.println("eindeutige Files: " + readedElements.size());
         System.out.println("Sdat Files converted: " + convertedSdatFiles.size());
         System.out.println("Esl Files converted: " + convertedEslFiles.size());
     }
+    public List<List<CombinedData>> CombineData(List<ESLBillingData> eslBillingDataList, List<ValidatedMeteredData> validatedMeteredDataList){
+        List<List<CombinedData>> Data = new ArrayList<>();
+        for (int esl = 0; esl < eslBillingDataList.size(); esl++){
+            List<CombinedData> CombinedDataList = new ArrayList<>();
+            for (int vMdLE = 0; vMdLE < validatedMeteredDataList.size(); vMdLE++){
+                ZonedDateTime zonedDateTime = ZonedDateTime.parse(validatedMeteredDataList.get(vMdLE).getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation());
+                LocalDate ValidatedMetredDataDate = zonedDateTime.toLocalDate();
+
+                LocalDateTime ESLBillingDataDateTime = LocalDateTime.parse(eslBillingDataList.get(esl).getHeader().getCreated());
+                LocalDate ESLBillingDataDate = ESLBillingDataDateTime.toLocalDate();
+
+                LocalDateTime NextzonedDateTime;
+                LocalDate NextValidatedMetredDataDate = LocalDate.now();
+                try {
+                    NextzonedDateTime = LocalDateTime.parse(eslBillingDataList.get(esl + 1).getHeader().getCreated());
+                    NextValidatedMetredDataDate = NextzonedDateTime.toLocalDate();
+                }catch (Exception e){
+                    System.out.println(e);
+                    System.out.println("Last Element");
+                }
+                if ((ValidatedMetredDataDate.isAfter(ESLBillingDataDate)|| ValidatedMetredDataDate.equals(ESLBillingDataDate)) && (ValidatedMetredDataDate.isBefore(NextValidatedMetredDataDate))){
+                    CombinedData C = new CombinedData();
+                    C.setEslBillingData(eslBillingDataList.get(esl));
+                    C.setValidatedMeteredData(validatedMeteredDataList.get(vMdLE));
+                    CombinedDataList.add(C);
+                }
+
+            }
+            Data.add(CombinedDataList);
+        }
+        return Data;
+    }
+
+
+
+
     public void initialize() {
         //Initialize the Pane
         pane.setPrefWidth(600);

@@ -1,5 +1,7 @@
 package com.ubs.Model.sdat;
 import javax.xml.bind.annotation.*;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @XmlRootElement(namespace = "http://www.strom.ch", name = "ValidatedMeteredData_14")
 public class ValidatedMeteredData_14 implements ValidatedMeteredData{
@@ -19,5 +21,16 @@ public class ValidatedMeteredData_14 implements ValidatedMeteredData{
     }
     public void setMeteringData(MeteringData meteringData) {
         MeteringData = meteringData;
+    }
+    public int compareTo(String otherDate) {
+        ZonedDateTime OtherZonedDateTime = ZonedDateTime.parse(otherDate);
+        ZonedDateTime ThisZonedDateTime = ZonedDateTime.parse(this.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation());
+
+        int dateComparison = ThisZonedDateTime.compareTo(OtherZonedDateTime);
+        if (dateComparison != 0) {
+            return dateComparison;
+        }
+
+        return ThisZonedDateTime.compareTo(OtherZonedDateTime);
     }
 }
