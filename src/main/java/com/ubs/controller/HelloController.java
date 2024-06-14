@@ -2,37 +2,50 @@ package com.ubs.controller;
 
 import com.ubs.Model.CombinedData;
 import com.ubs.Model.esl.ESLBillingData;
+import com.ubs.Model.esl.Meter;
+import com.ubs.Model.esl.TimePeriod;
+import com.ubs.Model.esl.ValueRow;
+import com.ubs.Model.sdat.Observation;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.Model.sdat.ValidatedMeteredData_12;
 import com.ubs.helper.BarChartEntry;
+import com.ubs.helper.DebugHelperDrawDiagram;
 import com.ubs.helper.StatisticDrawer;
 import com.ubs.helper.XmlFactory;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Arc;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import javax.xml.bind.JAXBException;
 import java.io.File;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class HelloController {
+    private ArrayList<Canvas> ControllerViews;
+    @FXML
+    private Text progressText;
     @FXML
     private Button Button1;
     @FXML
     private Pane pane;
+    @FXML
+    private ProgressBar progressBar;
     @FXML
     private Button Button3;
     @FXML
@@ -57,7 +70,7 @@ public class HelloController {
     }
     @FXML
     private Canvas canvas = new Canvas();
-
+    int canvasIndex = 0;
     @FXML
     void draw(ActionEvent event) {
         pane.getChildren().remove(canvas);
@@ -67,7 +80,12 @@ public class HelloController {
         //PADDING: Abstand von Rand zur Grafik(links/unten) für Beschriftung -> Mind.35 für Beschriftung
         //BESCHRIFTUNGX: Beschriftung der X-Achse
         //BESCHRIFTUNGY: Beschriftung der Y-Achse
-        canvas = StatisticDrawer.drawLineDiagram(new ArrayList<>(List.of(4.0,26.0,10.0,4.0,7.9)),200.0,400.0,35.0,true,true,new ArrayList<>(List.of("12:00","12:15","12:30","12:45","13:00")));
+     //   canvas = StatisticDrawer.drawLineDiagram(new ArrayList<>(List.of(4.0,26.0,10.0,4.0,7.9)),200.0,400.0,35.0,true,true,new ArrayList<>(List.of("12:00","12:15","12:30","12:45","13:00")));
+        canvas = ControllerViews.get(canvasIndex);
+        canvasIndex++;
+        if (canvasIndex > ControllerViews.size() - 1){
+            canvasIndex = 0;
+        }
         canvas.setLayoutY(100);
         pane.getChildren().add(canvas);
     }
@@ -80,44 +98,85 @@ public class HelloController {
         List<File> selectedFiles = fileChooser.showOpenMultipleDialog(stage);
         List<ValidatedMeteredData> convertedSdatFiles = new ArrayList<>();
         List<ESLBillingData> convertedEslFiles = new ArrayList<>();
-        for (File file : selectedFiles) {
-            if (file == null) {
-                break;
-            }
-            if (!file.getPath().contains(".xml")) {
-                return;
-            }
-            if (file.getPath().contains("EdmRegisterWertExport")) {
-                try {
-                    convertedEslFiles.add(XmlFactory.convertToESLBillingData(file.getPath()));
-                } catch (Exception e) {
-                    e.printStackTrace();
+        progressBar.setVisible(true);
+        Button1.setDisable(true);
+        new Thread(() -> {
+            int progressCount = 0;
+            try{
+            for(File file : selectedFiles) {
+                progressCount++;
+                if (file == null) {
+                    Platform.runLater(() -> progressText.setText("No Files selected"));
+                    Platform.runLater(() -> progressBar.setVisible(false));
+                    Platform.runLater(() -> Button1.setDisable(false));
+
+                    break;
                 }
-            } else {
-                try {
-                    convertedSdatFiles.add(XmlFactory.convertToValidatedMeteredData_12_13_14(file.getPath()));
-                } catch (Exception e) {
-                    e.printStackTrace();
+                if (!file.getPath().contains(".xml")) {
+                    Platform.runLater(() -> progressText.setText("Only XML Files allowed"));
+                    Platform.runLater(() -> progressBar.setVisible(false));
+                    Platform.runLater(() -> Button1.setDisable(false));
+                    return;
                 }
+                if (file.getPath().contains("EdmRegisterWertExport")) {
+                    try {
+                        convertedEslFiles.add(XmlFactory.convertToESLBillingData(file.getPath()));
+                    } catch (Exception e) {
+                        Platform.runLater(() -> progressText.setText("Error converting ESL Files"));
+                        Platform.runLater(() -> progressBar.setVisible(false));
+                        Platform.runLater(() -> Button1.setDisable(false));
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        convertedSdatFiles.add(XmlFactory.convertToValidatedMeteredData_12_13_14(file.getPath()));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Platform.runLater(() -> progressText.setText("Error converting Sdat Files"));
+                        Platform.runLater(() -> progressBar.setVisible(false));
+                        Platform.runLater(() -> Button1.setDisable(false));
+                    }
+                }
+                int currentProgress = progressCount;
+                Platform.runLater(() -> progressBar.setProgress((double) currentProgress / selectedFiles.size()));
+                Platform.runLater(() -> progressText.setText("Files converted: " + currentProgress + "/" + selectedFiles.size()));
             }
-        }
+
+        Platform.runLater(() -> progressText.setText("Processing Data"));
         //Sdat Files werden einspeisung und bezug zugeordnet und Duplikate werden aussortiert
         List<String> readedElements = new ArrayList<>();
         List<ValidatedMeteredData> validatedMeteredDataListEinspeisen = new ArrayList<>();
         List<ValidatedMeteredData> validatedMeteredDataListBezug = new ArrayList<>();
         if (!convertedSdatFiles.isEmpty()){
             for (ValidatedMeteredData validatedMeteredData : convertedSdatFiles) {
-                validatedMeteredData.getValidatedMeteredData_HeaderInformation();
-                if(!readedElements.contains(validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation())){
-                    readedElements.add(validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation());
-                    if (validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getDocumentID().contains("ID742")) {
-                        validatedMeteredDataListBezug.add(validatedMeteredData);
-                    } else {
-                        validatedMeteredDataListEinspeisen.add(validatedMeteredData);
-                    }
+                if (validatedMeteredData.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getDocumentID().contains("ID742")) {
+                    validatedMeteredDataListBezug.add(validatedMeteredData);
+                } else {
+                    validatedMeteredDataListEinspeisen.add(validatedMeteredData);
                 }
             }
+            ArrayList<ValidatedMeteredData> EindeutigeValidatedMeteredDataListEinspeisen = new ArrayList<>();
+            ArrayList<ValidatedMeteredData> EindeutigeValidatedMeteredDataListBezug = new ArrayList<>();
+
+            for (ValidatedMeteredData v: validatedMeteredDataListBezug){
+                if (!readedElements.contains(v.getMeteringData().getInterval().getEndDateTime())){
+                    EindeutigeValidatedMeteredDataListBezug.add(v);
+                    readedElements.add(v.getMeteringData().getInterval().getEndDateTime());
+                }
+            }
+            readedElements = new ArrayList<>();
+            for (ValidatedMeteredData v: validatedMeteredDataListEinspeisen){
+                if (!readedElements.contains(v.getMeteringData().getInterval().getEndDateTime())){
+                    EindeutigeValidatedMeteredDataListEinspeisen.add(v);
+                    readedElements.add(v.getMeteringData().getInterval().getEndDateTime());
+                }
+            }
+            validatedMeteredDataListBezug = EindeutigeValidatedMeteredDataListBezug;
+            validatedMeteredDataListEinspeisen = EindeutigeValidatedMeteredDataListEinspeisen;
         }
+
+
+
         //Duplikate werden aussortiert für Esl files
         readedElements = new ArrayList<>();
         List<ESLBillingData> eindeutigeESLFiles = new ArrayList<>();
@@ -130,13 +189,40 @@ public class HelloController {
             }
         }
         eindeutigeESLFiles.sort((o1, o2) -> o1.compareTo(o2.getHeader().getCreated()));
-        validatedMeteredDataListEinspeisen.sort((o1, o2) -> o1.compareTo(o2.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation()));
-        validatedMeteredDataListBezug.sort((o1, o2) -> o1.compareTo(o2.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation()));
-        List<List<CombinedData>> BezugData = CombineData(eindeutigeESLFiles,validatedMeteredDataListBezug);
-        List<List<CombinedData>> EinspeisenData = CombineData(eindeutigeESLFiles,validatedMeteredDataListEinspeisen);
+        validatedMeteredDataListEinspeisen.sort((o1, o2) -> o1.compareTo(o2.getMeteringData().getInterval().getEndDateTime()));
+        validatedMeteredDataListBezug.sort((o1, o2) -> o1.compareTo(o2.getMeteringData().getInterval().getEndDateTime()));
 
+        Set<String> removeDoubleTimePeriods = new HashSet<>();
 
+        for (ESLBillingData eslBillingData : eindeutigeESLFiles) {
+            for (Meter meter : eslBillingData.getMeter()) {
+                Iterator<TimePeriod> iterator = meter.getTimePeriod().iterator();
+                while (iterator.hasNext()) {
+                    TimePeriod timePeriod = iterator.next();
+                    if (removeDoubleTimePeriods.contains(timePeriod.getEnd())) {
+                        iterator.remove();
+                    } else {
+                        removeDoubleTimePeriods.add(timePeriod.getEnd());
+                    }
+                }
+            }
+        }
 
+        for (ESLBillingData eslBillingData: eindeutigeESLFiles) {
+            eslBillingData.getMeter().removeIf(meter -> meter.getTimePeriod().isEmpty());
+        }
+        eindeutigeESLFiles.removeIf(eslBillingData -> eslBillingData.getMeter().isEmpty());
+
+        List<CombinedData> BezugData = CombineData(eindeutigeESLFiles,validatedMeteredDataListBezug);
+        List<CombinedData> EinspeisenData = CombineData(eindeutigeESLFiles,validatedMeteredDataListEinspeisen);
+        LineViewGenerator(BezugData);
+        /*
+            pane.getChildren().remove(canvas);
+            canvas = views.get(0);
+            canvas.setLayoutY(100);
+            pane.getChildren().add(canvas);
+
+         */
 
         System.out.println(EinspeisenData);
         System.out.println(BezugData);
@@ -144,36 +230,140 @@ public class HelloController {
         System.out.println("eindeutige Files: " + readedElements.size());
         System.out.println("Sdat Files converted: " + convertedSdatFiles.size());
         System.out.println("Esl Files converted: " + convertedEslFiles.size());
+        Platform.runLater(() -> progressText.setText("Files converted: " + selectedFiles.size() + "/" + selectedFiles.size() + ":Finished"));
+        Platform.runLater(() -> progressBar.setVisible(false));
+        Platform.runLater(() -> Button1.setDisable(false));
+        }catch (NullPointerException e) {
+            Platform.runLater(() -> progressBar.setVisible(false));
+            Platform.runLater(() -> progressText.setText("No Files selected"));
+            Platform.runLater(() -> Button1.setDisable(false));
+        }
+        }).start();
     }
-    public List<List<CombinedData>> CombineData(List<ESLBillingData> eslBillingDataList, List<ValidatedMeteredData> validatedMeteredDataList){
-        List<List<CombinedData>> Data = new ArrayList<>();
+    public void LineViewGenerator(List<CombinedData> BezugData){
+        DebugHelperDrawDiagram dhdd = new DebugHelperDrawDiagram();
+        ArrayList<Canvas> views =  new ArrayList<>();
+        for (int y = 0; y < BezugData.size();y++){
+            CombinedData c = BezugData.get(y);
+            if (c.getEslBillingData().getMeter().size()>1){
+                ArrayList<String> timePeriodsEnd = new ArrayList<>();
+                for (TimePeriod tp : c.getEslBillingData().getMeter().getFirst().getTimePeriod()){
+                    timePeriodsEnd.add(tp.getEnd());
+                }
+                for (int m =1;m<c.getEslBillingData().getMeter().size();m++){
+                    for (TimePeriod tp: c.getEslBillingData().getMeter().get(m).getTimePeriod()){
+                     //   if (!timePeriodsEnd.contains(tp.getEnd())){
+                            c.getEslBillingData().getMeter().getFirst().getTimePeriod().add(tp);
+                      //  }
+                    }
+                }
+            }
+            List<TimePeriod> timePeriods = BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod();
+            List<String> usedTimePeriods = new ArrayList<>();
+            for (TimePeriod tp : timePeriods){
+                if (usedTimePeriods.contains(tp.getEnd())){
+                    timePeriods.remove(tp);
+                }else{
+                    usedTimePeriods.add(tp.getEnd());
+                }
+            }
+
+            for (int t = timePeriods.size()-1;t>=0;t--){
+                LocalDate timePeriodDate = LocalDateTime.parse(timePeriods.get(t).getEnd()).toLocalDate();
+                LocalDate previousTimePeriodDate;
+                ArrayList<Double> yAchsePunkte = new ArrayList<>();
+                ArrayList<String> xAchse = new ArrayList<>();
+                try {
+                    previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod().get(t+1).getEnd()).toLocalDate();
+                    xAchse.add(previousTimePeriodDate.toString());
+
+                }catch (Exception e){
+                    try {
+                        previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y - 1).getEslBillingData().getMeter().getFirst().getTimePeriod().getFirst().getEnd()).toLocalDate();
+                        xAchse.add(previousTimePeriodDate.toString());
+                    }catch (Exception e1){
+                        xAchse.add("");
+                        previousTimePeriodDate = LocalDate.of(1900,1,1);
+                    }
+                }
+                xAchse.add(LocalDateTime.parse(c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getEnd()).toLocalDate().toString());
+                Double stand = 0.0;
+                for(ValueRow v: c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()){
+                    if (v.getObis().equals("1-1:1.8.1")){
+                        stand = Double.valueOf(v.getValue());
+                        break;
+                    }
+                }
+                for (ValidatedMeteredData v : c.getValidatedMeteredData()){
+                    LocalDate validatedMetredDataDate = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
+                    if (validatedMetredDataDate.isAfter(previousTimePeriodDate) && (validatedMetredDataDate.isBefore(timePeriodDate)|| validatedMetredDataDate.equals(timePeriodDate))){
+                        for (Observation o : v.getMeteringData().getObservations()){
+                            stand += Double.valueOf(o.getVolume());
+                            yAchsePunkte.add(stand);
+                        }
+
+                    }
+                }
+                if (!yAchsePunkte.isEmpty()){
+                    dhdd.yList.add(yAchsePunkte);
+                    dhdd.xList.add(xAchse);
+                    views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte,400,700,60,true,true,xAchse));
+                }}
+        }
+
+        ControllerViews = views;
+    }
+
+
+
+    public List<CombinedData> CombineData(List<ESLBillingData> eslBillingDataList, List<ValidatedMeteredData> validatedMeteredDataList){
+        List<CombinedData> Data = new ArrayList<>();
         for (int esl = 0; esl < eslBillingDataList.size(); esl++){
-            List<CombinedData> CombinedDataList = new ArrayList<>();
-            for (int vMdLE = 0; vMdLE < validatedMeteredDataList.size(); vMdLE++){
-                ZonedDateTime zonedDateTime = ZonedDateTime.parse(validatedMeteredDataList.get(vMdLE).getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation());
+            CombinedData C = new CombinedData();
+            C.setEslBillingData(eslBillingDataList.get(esl));
+            for (ValidatedMeteredData validatedMeteredData : validatedMeteredDataList) {
+                ZonedDateTime zonedDateTime = ZonedDateTime.parse(validatedMeteredData.getMeteringData().getInterval().getEndDateTime());
                 LocalDate ValidatedMetredDataDate = zonedDateTime.toLocalDate();
 
-                LocalDateTime ESLBillingDataDateTime = LocalDateTime.parse(eslBillingDataList.get(esl).getHeader().getCreated());
+                LocalDateTime ESLBillingDataDateTime = LocalDateTime.parse(eslBillingDataList.get(esl).getMeter().getFirst().getTimePeriod().getFirst().getEnd());
                 LocalDate ESLBillingDataDate = ESLBillingDataDateTime.toLocalDate();
 
+                //evtl nicht benötigt
                 LocalDateTime NextzonedDateTime;
                 LocalDate NextValidatedMetredDataDate = LocalDate.now();
                 try {
                     NextzonedDateTime = LocalDateTime.parse(eslBillingDataList.get(esl + 1).getHeader().getCreated());
                     NextValidatedMetredDataDate = NextzonedDateTime.toLocalDate();
-                }catch (Exception e){
+                } catch (Exception e) {
                     System.out.println(e);
                     System.out.println("Last Element");
                 }
-                if ((ValidatedMetredDataDate.isAfter(ESLBillingDataDate)|| ValidatedMetredDataDate.equals(ESLBillingDataDate)) && (ValidatedMetredDataDate.isBefore(NextValidatedMetredDataDate))){
+                //bis hier
+                LocalDateTime PreviouszonedDateTime;
+                LocalDate PreviousMetredDataDate = LocalDate.of(2000,1,1);
+                try {
+                    PreviouszonedDateTime = LocalDateTime.parse(eslBillingDataList.get(esl -1).getMeter().getFirst().getTimePeriod().getFirst().getEnd());
+                    PreviousMetredDataDate = PreviouszonedDateTime.toLocalDate();
+                } catch (Exception e) {
+                    System.out.println(e);
+                    System.out.println("Last Element");
+                }
+                if ((ValidatedMetredDataDate.isAfter(PreviousMetredDataDate) && (ValidatedMetredDataDate.isBefore(ESLBillingDataDate) || ValidatedMetredDataDate.equals(ESLBillingDataDate)))){
+                    C.getValidatedMeteredData().add(validatedMeteredData);
+                }
+                /*
+                if ((ValidatedMetredDataDate.isAfter(ESLBillingDataDate) || ValidatedMetredDataDate.equals(ESLBillingDataDate)) && (ValidatedMetredDataDate.isBefore(NextValidatedMetredDataDate))) {
                     CombinedData C = new CombinedData();
                     C.setEslBillingData(eslBillingDataList.get(esl));
-                    C.setValidatedMeteredData(validatedMeteredDataList.get(vMdLE));
+                    C.setValidatedMeteredData(validatedMeteredData);
                     CombinedDataList.add(C);
                 }
 
+                 */
             }
-            Data.add(CombinedDataList);
+            if (!C.getValidatedMeteredData().isEmpty()) {
+                Data.add(C);
+            }
         }
         return Data;
     }
@@ -182,9 +372,11 @@ public class HelloController {
 
 
     public void initialize() {
+        progressText.setText("Please import Files");
+        progressBar.setVisible(false);
         //Initialize the Pane
-        pane.setPrefWidth(600);
-        pane.setPrefHeight(500);
+        pane.setPrefWidth(800);
+        pane.setPrefHeight(700);
         Button1.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
         Button2.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
         Button3.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));

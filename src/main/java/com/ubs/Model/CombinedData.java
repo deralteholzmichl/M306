@@ -3,10 +3,13 @@ package com.ubs.Model;
 import com.ubs.Model.esl.ESLBillingData;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CombinedData {
     ESLBillingData eslBillingData;
 
-    ValidatedMeteredData validatedMeteredData;
+    ArrayList<ValidatedMeteredData> validatedMeteredData = new ArrayList<>();
 
     public ESLBillingData getEslBillingData() {
         return eslBillingData;
@@ -16,11 +19,11 @@ public class CombinedData {
         this.eslBillingData = eslBillingData;
     }
 
-    public ValidatedMeteredData getValidatedMeteredData() {
+    public ArrayList<ValidatedMeteredData> getValidatedMeteredData() {
         return validatedMeteredData;
     }
 
-    public void setValidatedMeteredData(ValidatedMeteredData validatedMeteredData) {
+    public void setValidatedMeteredData(ArrayList<ValidatedMeteredData> validatedMeteredData) {
         this.validatedMeteredData = validatedMeteredData;
     }
 }

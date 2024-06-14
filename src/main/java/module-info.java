@@ -12,7 +12,9 @@ module com.ubs.controller {
     exports com.ubs.controller;
     exports com.ubs.Model.sdat;
     exports com.ubs.Model.esl;
+    exports com.ubs.Model;
     opens com.ubs.Model.sdat;
     opens com.ubs.Model.esl;
+    opens com.ubs.Model;
     //opens com.ubs.dao to javafx.fxml;
 }

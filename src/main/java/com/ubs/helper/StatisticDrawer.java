@@ -83,6 +83,7 @@ public class StatisticDrawer {
             // Nullpunkt
            // gc.fillText(DatenBeschrX.get(0), PADDING, canvas.getHeight() - PADDING / UNTERTEILUNGENX);
             for (int i = 0; i <= UNTERTEILUNGENX; i++) {
+                gc.setFont(Font.font(8));
                 // Zeichne Markierungen und Beschriftungen auf der X-Achse
                 if (i == 0){
                     gc.fillText(DatenBeschrX.get(i), PADDING, canvas.getHeight() - PADDING / 5);

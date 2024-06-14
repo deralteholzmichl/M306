@@ -24,7 +24,7 @@ public class ValidatedMeteredData_14 implements ValidatedMeteredData{
     }
     public int compareTo(String otherDate) {
         ZonedDateTime OtherZonedDateTime = ZonedDateTime.parse(otherDate);
-        ZonedDateTime ThisZonedDateTime = ZonedDateTime.parse(this.getValidatedMeteredData_HeaderInformation().getInstanceDocument().getCreation());
+        ZonedDateTime ThisZonedDateTime = ZonedDateTime.parse(this.getMeteringData().getInterval().getEndDateTime());
 
         int dateComparison = ThisZonedDateTime.compareTo(OtherZonedDateTime);
         if (dateComparison != 0) {
