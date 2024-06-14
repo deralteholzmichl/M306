@@ -373,6 +373,7 @@ public class HelloController {
                     }
                     dhdd.yList.add(yAchsePunkte);
                     dhdd.xList.add(xAchse);
+                    views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
                 }
             }
         }else {
