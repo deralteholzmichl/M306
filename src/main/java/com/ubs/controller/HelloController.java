@@ -8,10 +8,7 @@ import com.ubs.Model.esl.ValueRow;
 import com.ubs.Model.sdat.Observation;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.Model.sdat.ValidatedMeteredData_12;
-import com.ubs.helper.BarChartEntry;
-import com.ubs.helper.DebugHelperDrawDiagram;
-import com.ubs.helper.StatisticDrawer;
-import com.ubs.helper.XmlFactory;
+import com.ubs.helper.*;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -28,6 +25,7 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import javax.persistence.criteria.CriteriaBuilder;
 import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.sql.Time;
@@ -38,6 +36,7 @@ import java.util.*;
 
 public class HelloController {
     private ArrayList<Canvas> ControllerViews;
+    private ArrayList<Canvas> BarChartViews;
     @FXML
     private Text progressText;
     @FXML
@@ -52,6 +51,7 @@ public class HelloController {
     private Button Button4;
     @FXML
     void drawBar(ActionEvent event) {
+        canvasIndex = 0;
         pane.getChildren().remove(canvas);
         ArrayList<BarChartEntry> sampleList = new ArrayList<>();
         sampleList.add(new BarChartEntry("Test1", 10));
@@ -63,6 +63,21 @@ public class HelloController {
         canvas.setLayoutY(100);
         pane.getChildren().add(canvas);
 
+        pane.getChildren().remove(canvas);
+        //Startwert der Grafik ist der erste Wert der jeweiligen Liste
+        //MAX_HEIGHT: Wie gross die grafik sein soll
+        //MAX_WIDTH: Wie breit die grafik sein soll
+        //PADDING: Abstand von Rand zur Grafik(links/unten) für Beschriftung -> Mind.35 für Beschriftung
+        //BESCHRIFTUNGX: Beschriftung der X-Achse
+        //BESCHRIFTUNGY: Beschriftung der Y-Achse
+        //   canvas = StatisticDrawer.drawLineDiagram(new ArrayList<>(List.of(4.0,26.0,10.0,4.0,7.9)),200.0,400.0,35.0,true,true,new ArrayList<>(List.of("12:00","12:15","12:30","12:45","13:00")));
+        canvas = BarChartViews.get(canvasIndex);
+        canvasIndex++;
+        if (canvasIndex > BarChartViews.size() - 1){
+            canvasIndex = 0;
+        }
+        canvas.setLayoutY(100);
+        pane.getChildren().add(canvas);
     }
     @FXML
     void delete(ActionEvent event) {
@@ -193,7 +208,6 @@ public class HelloController {
         validatedMeteredDataListBezug.sort((o1, o2) -> o1.compareTo(o2.getMeteringData().getInterval().getEndDateTime()));
 
         Set<String> removeDoubleTimePeriods = new HashSet<>();
-
         for (ESLBillingData eslBillingData : eindeutigeESLFiles) {
             for (Meter meter : eslBillingData.getMeter()) {
                 Iterator<TimePeriod> iterator = meter.getTimePeriod().iterator();
@@ -215,14 +229,9 @@ public class HelloController {
 
         List<CombinedData> BezugData = CombineData(eindeutigeESLFiles,validatedMeteredDataListBezug);
         List<CombinedData> EinspeisenData = CombineData(eindeutigeESLFiles,validatedMeteredDataListEinspeisen);
-        LineViewGenerator(BezugData);
-        /*
-            pane.getChildren().remove(canvas);
-            canvas = views.get(0);
-            canvas.setLayoutY(100);
-            pane.getChildren().add(canvas);
-
-         */
+        LineViewGenerator(BezugData,Interval.DAILY);
+        //date can be null if Interval is not DAILY
+        BarChartViewGenerator(EinspeisenData, Interval.DAILY,"2022-06-29T22:00:00Z");
 
         System.out.println(EinspeisenData);
         System.out.println(BezugData);
@@ -240,77 +249,206 @@ public class HelloController {
         }
         }).start();
     }
-    public void LineViewGenerator(List<CombinedData> BezugData){
+    public void BarChartViewGenerator(List<CombinedData> BezugData, Interval interval,String datum){
+        List<BarChartEntry> dhdd = new ArrayList<>();
+        ArrayList<Canvas> views =  new ArrayList<>();
+        if (interval == Interval.DAILY){
+            for (CombinedData c:BezugData){
+                for (ValidatedMeteredData v: c.getValidatedMeteredData()){
+                    System.out.println(v.getMeteringData().getInterval().getEndDateTime());
+                    if (v.getMeteringData().getInterval().getEndDateTime().equals(datum)){
+                        for (Observation o : v.getMeteringData().getObservations()) {
+                            BarChartEntry bce = new BarChartEntry("", o.getVolume());
+                            dhdd.add(bce);
+                        }
+                    }
+                }
+            }
+            if (!dhdd.isEmpty()) {
+                views.add(StatisticDrawer.drawBarChart(400, 300, 60, dhdd));
+                System.out.println(views.size());
+            }
+        }else {
+            for (int y = 0; y < BezugData.size(); y++) {
+                CombinedData c = BezugData.get(y);
+                if (c.getEslBillingData().getMeter().size() > 1) {
+                    ArrayList<String> timePeriodsEnd = new ArrayList<>();
+                    for (TimePeriod tp : c.getEslBillingData().getMeter().getFirst().getTimePeriod()) {
+                        timePeriodsEnd.add(tp.getEnd());
+                    }
+                    for (int m = 1; m < c.getEslBillingData().getMeter().size(); m++) {
+                        for (TimePeriod tp : c.getEslBillingData().getMeter().get(m).getTimePeriod()) {
+                            //     if (!timePeriodsEnd.contains(tp.getEnd())){
+                            c.getEslBillingData().getMeter().getFirst().getTimePeriod().add(tp);
+                        }
+                        //     }
+                    }
+                }
+                List<TimePeriod> timePeriods = BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod();
+                List<String> usedTimePeriods = new ArrayList<>();
+                for (TimePeriod tp : timePeriods) {
+                    if (usedTimePeriods.contains(tp.getEnd())) {
+                        timePeriods.remove(tp);
+                    } else {
+                        usedTimePeriods.add(tp.getEnd());
+                    }
+                }
+
+                for (int t = timePeriods.size() - 1; t >= 0; t--) {
+                    LocalDate timePeriodDate = LocalDateTime.parse(timePeriods.get(t).getEnd()).toLocalDate();
+                    LocalDate previousTimePeriodDate;
+                    ArrayList<Double> yAchsePunkte = new ArrayList<>();
+                    ArrayList<String> xAchse = new ArrayList<>();
+                    try {
+                        previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod().get(t + 1).getEnd()).toLocalDate();
+                        xAchse.add(previousTimePeriodDate.toString());
+
+                    } catch (Exception e) {
+                        try {
+                            previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y - 1).getEslBillingData().getMeter().getFirst().getTimePeriod().getFirst().getEnd()).toLocalDate();
+                            xAchse.add(previousTimePeriodDate.toString());
+                        } catch (Exception e1) {
+                            xAchse.add("");
+                            previousTimePeriodDate = LocalDate.of(1900, 1, 1);
+                        }
+                    }
+                    xAchse.add(LocalDateTime.parse(c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getEnd()).toLocalDate().toString());
+                    Double stand = 0.0;
+                    /*
+                    for (ValueRow v : c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()) {
+                        if (v.getObis().equals("1-1:1.6.1")) {
+                            stand = Double.valueOf(v.getValue());
+                            break;
+                        }
+                    }
+
+                     */
+                    for (ValidatedMeteredData v : c.getValidatedMeteredData()) {
+                        LocalDate validatedMetredDataDate = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
+                        LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
+                        if (validatedMetredDataDate.isAfter(previousTimePeriodDate) && (validatedMetredDataDate.isBefore(timePeriodDate) || validatedMetredDataDate.equals(timePeriodDate))) {
+                            //   if (validatedMetredDataDateStart.isAfter(previousTimePeriodDate)|| validatedMetredDataDateStart.equals(previousTimePeriodDate)) {
+                            for (Observation o : v.getMeteringData().getObservations()) {
+                                stand += Double.valueOf(o.getVolume());
+                                yAchsePunkte.add(stand);
+                            }
+                            //     }
+                        }
+                    }
+                    BarChartEntry bce = new BarChartEntry(previousTimePeriodDate + "-" + timePeriodDate, stand);
+                    dhdd.add(bce);
+                }
+            }
+            views.add(StatisticDrawer.drawBarChart(400, 300, 60, dhdd));
+        }
+        if (!views.isEmpty()) {
+            BarChartViews = views;
+        }else{
+            dhdd.add(new BarChartEntry("No Data for selected Date",0.0));
+        }
+    }
+
+    public void LineViewGenerator(List<CombinedData> BezugData, Interval interval){
         DebugHelperDrawDiagram dhdd = new DebugHelperDrawDiagram();
         ArrayList<Canvas> views =  new ArrayList<>();
-        for (int y = 0; y < BezugData.size();y++){
-            CombinedData c = BezugData.get(y);
-            if (c.getEslBillingData().getMeter().size()>1){
-                ArrayList<String> timePeriodsEnd = new ArrayList<>();
-                for (TimePeriod tp : c.getEslBillingData().getMeter().getFirst().getTimePeriod()){
-                    timePeriodsEnd.add(tp.getEnd());
-                }
-                for (int m =1;m<c.getEslBillingData().getMeter().size();m++){
-                    for (TimePeriod tp: c.getEslBillingData().getMeter().get(m).getTimePeriod()){
-                     //   if (!timePeriodsEnd.contains(tp.getEnd())){
-                            c.getEslBillingData().getMeter().getFirst().getTimePeriod().add(tp);
-                      //  }
-                    }
-                }
-            }
-            List<TimePeriod> timePeriods = BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod();
-            List<String> usedTimePeriods = new ArrayList<>();
-            for (TimePeriod tp : timePeriods){
-                if (usedTimePeriods.contains(tp.getEnd())){
-                    timePeriods.remove(tp);
-                }else{
-                    usedTimePeriods.add(tp.getEnd());
-                }
-            }
-
-            for (int t = timePeriods.size()-1;t>=0;t--){
-                LocalDate timePeriodDate = LocalDateTime.parse(timePeriods.get(t).getEnd()).toLocalDate();
-                LocalDate previousTimePeriodDate;
-                ArrayList<Double> yAchsePunkte = new ArrayList<>();
-                ArrayList<String> xAchse = new ArrayList<>();
-                try {
-                    previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod().get(t+1).getEnd()).toLocalDate();
-                    xAchse.add(previousTimePeriodDate.toString());
-
-                }catch (Exception e){
-                    try {
-                        previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y - 1).getEslBillingData().getMeter().getFirst().getTimePeriod().getFirst().getEnd()).toLocalDate();
-                        xAchse.add(previousTimePeriodDate.toString());
-                    }catch (Exception e1){
-                        xAchse.add("");
-                        previousTimePeriodDate = LocalDate.of(1900,1,1);
-                    }
-                }
-                xAchse.add(LocalDateTime.parse(c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getEnd()).toLocalDate().toString());
-                Double stand = 0.0;
-                for(ValueRow v: c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()){
-                    if (v.getObis().equals("1-1:1.8.1")){
-                        stand = Double.valueOf(v.getValue());
+        if (interval == Interval.DAILY){
+            for (CombinedData c:BezugData){
+                double stand = 0.0;
+                for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
+                    if (vr.getObis().equals("1-1:1.8.1")) {
+                        stand = Double.valueOf(vr.getValue());
                         break;
                     }
                 }
-                for (ValidatedMeteredData v : c.getValidatedMeteredData()){
-                    LocalDate validatedMetredDataDate = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
-                    if (validatedMetredDataDate.isAfter(previousTimePeriodDate) && (validatedMetredDataDate.isBefore(timePeriodDate)|| validatedMetredDataDate.equals(timePeriodDate))){
-                        for (Observation o : v.getMeteringData().getObservations()){
-                            stand += Double.valueOf(o.getVolume());
-                            yAchsePunkte.add(stand);
-                        }
-
+                for (ValidatedMeteredData v: c.getValidatedMeteredData()){
+                    LocalDate validatedMetredDataDateEnd = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
+                    LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
+                    ArrayList<Double> yAchsePunkte = new ArrayList<>();
+                    ArrayList<String> xAchse = new ArrayList<>();
+                    xAchse.add(validatedMetredDataDateStart.toString());
+                    xAchse.add(validatedMetredDataDateEnd.toString());
+                    for (Observation o : v.getMeteringData().getObservations()){
+                        stand += Double.valueOf(o.getVolume());
+                        yAchsePunkte.add(stand);
                     }
-                }
-                if (!yAchsePunkte.isEmpty()){
                     dhdd.yList.add(yAchsePunkte);
                     dhdd.xList.add(xAchse);
-                    views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte,400,700,60,true,true,xAchse));
-                }}
-        }
+                }
+            }
+        }else {
 
+
+            for (int y = 0; y < BezugData.size(); y++) {
+                CombinedData c = BezugData.get(y);
+                if (c.getEslBillingData().getMeter().size() > 1) {
+                    ArrayList<String> timePeriodsEnd = new ArrayList<>();
+                    for (TimePeriod tp : c.getEslBillingData().getMeter().getFirst().getTimePeriod()) {
+                        timePeriodsEnd.add(tp.getEnd());
+                    }
+                    for (int m = 1; m < c.getEslBillingData().getMeter().size(); m++) {
+                        for (TimePeriod tp : c.getEslBillingData().getMeter().get(m).getTimePeriod()) {
+                            //     if (!timePeriodsEnd.contains(tp.getEnd())){
+                            c.getEslBillingData().getMeter().getFirst().getTimePeriod().add(tp);
+                        }
+                        //     }
+                    }
+                }
+                List<TimePeriod> timePeriods = BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod();
+                List<String> usedTimePeriods = new ArrayList<>();
+                for (TimePeriod tp : timePeriods) {
+                    if (usedTimePeriods.contains(tp.getEnd())) {
+                        timePeriods.remove(tp);
+                    } else {
+                        usedTimePeriods.add(tp.getEnd());
+                    }
+                }
+
+                for (int t = timePeriods.size() - 1; t >= 0; t--) {
+                    LocalDate timePeriodDate = LocalDateTime.parse(timePeriods.get(t).getEnd()).toLocalDate();
+                    LocalDate previousTimePeriodDate;
+                    ArrayList<Double> yAchsePunkte = new ArrayList<>();
+                    ArrayList<String> xAchse = new ArrayList<>();
+                    try {
+                        previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod().get(t + 1).getEnd()).toLocalDate();
+                        xAchse.add(previousTimePeriodDate.toString());
+
+                    } catch (Exception e) {
+                        try {
+                            previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y - 1).getEslBillingData().getMeter().getFirst().getTimePeriod().getFirst().getEnd()).toLocalDate();
+                            xAchse.add(previousTimePeriodDate.toString());
+                        } catch (Exception e1) {
+                            xAchse.add("");
+                            previousTimePeriodDate = LocalDate.of(1900, 1, 1);
+                        }
+                    }
+                    xAchse.add(LocalDateTime.parse(c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getEnd()).toLocalDate().toString());
+                    Double stand = 0.0;
+                    for (ValueRow v : c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()) {
+                        if (v.getObis().equals("1-1:1.8.1")) {
+                            stand = Double.valueOf(v.getValue());
+                            break;
+                        }
+                    }
+                    for (ValidatedMeteredData v : c.getValidatedMeteredData()) {
+                        LocalDate validatedMetredDataDate = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
+                        LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
+                        if (validatedMetredDataDate.isAfter(previousTimePeriodDate) && (validatedMetredDataDate.isBefore(timePeriodDate) || validatedMetredDataDate.equals(timePeriodDate))) {
+                            //   if (validatedMetredDataDateStart.isAfter(previousTimePeriodDate)|| validatedMetredDataDateStart.equals(previousTimePeriodDate)) {
+                            for (Observation o : v.getMeteringData().getObservations()) {
+                                stand += Double.valueOf(o.getVolume());
+                                yAchsePunkte.add(stand);
+                            }
+                            //     }
+                        }
+                    }
+                    if (!yAchsePunkte.isEmpty()) {
+                        dhdd.yList.add(yAchsePunkte);
+                        dhdd.xList.add(xAchse);
+                        views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
+                    }
+                }
+            }
+        }
         ControllerViews = views;
     }
 
@@ -327,18 +465,6 @@ public class HelloController {
 
                 LocalDateTime ESLBillingDataDateTime = LocalDateTime.parse(eslBillingDataList.get(esl).getMeter().getFirst().getTimePeriod().getFirst().getEnd());
                 LocalDate ESLBillingDataDate = ESLBillingDataDateTime.toLocalDate();
-
-                //evtl nicht benötigt
-                LocalDateTime NextzonedDateTime;
-                LocalDate NextValidatedMetredDataDate = LocalDate.now();
-                try {
-                    NextzonedDateTime = LocalDateTime.parse(eslBillingDataList.get(esl + 1).getHeader().getCreated());
-                    NextValidatedMetredDataDate = NextzonedDateTime.toLocalDate();
-                } catch (Exception e) {
-                    System.out.println(e);
-                    System.out.println("Last Element");
-                }
-                //bis hier
                 LocalDateTime PreviouszonedDateTime;
                 LocalDate PreviousMetredDataDate = LocalDate.of(2000,1,1);
                 try {
@@ -351,15 +477,6 @@ public class HelloController {
                 if ((ValidatedMetredDataDate.isAfter(PreviousMetredDataDate) && (ValidatedMetredDataDate.isBefore(ESLBillingDataDate) || ValidatedMetredDataDate.equals(ESLBillingDataDate)))){
                     C.getValidatedMeteredData().add(validatedMeteredData);
                 }
-                /*
-                if ((ValidatedMetredDataDate.isAfter(ESLBillingDataDate) || ValidatedMetredDataDate.equals(ESLBillingDataDate)) && (ValidatedMetredDataDate.isBefore(NextValidatedMetredDataDate))) {
-                    CombinedData C = new CombinedData();
-                    C.setEslBillingData(eslBillingDataList.get(esl));
-                    C.setValidatedMeteredData(validatedMeteredData);
-                    CombinedDataList.add(C);
-                }
-
-                 */
             }
             if (!C.getValidatedMeteredData().isEmpty()) {
                 Data.add(C);
@@ -367,9 +484,6 @@ public class HelloController {
         }
         return Data;
     }
-
-
-
 
     public void initialize() {
         progressText.setText("Please import Files");
