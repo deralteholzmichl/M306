@@ -87,6 +87,9 @@ public class HelloController {
 
     @FXML
     void delete(ActionEvent event) {
+        Export e = new Export();
+        e.exportToCSV(combinedVerbrauch,"Verbrauch");
+        e.exportToCSV(combinedEinspeisen,"Einspeisen");
         pane.getChildren().remove(canvas);
     }
     @FXML
@@ -533,15 +536,15 @@ public class HelloController {
                             break;
                         }
                     }else{
-                            if (vr.getObis().equals("1-1:2.8.1")) {
+                            if (vr.getObis().equals("1-1:1.8.2")) {
                                 stand = Double.valueOf(vr.getValue());
                                 break;
                             }
                     }
                 }
                 for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                    if (fileArt.equals("verbrauch")){
-                        if (vr.getObis().equals("1-1:1.8.2")) {
+                    if (fileArt.equals("Einspeisen")){
+                        if (vr.getObis().equals("1-1:2.8.1")) {
                             stand += Double.valueOf(vr.getValue());
                             break;
                         }
