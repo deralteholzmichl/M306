@@ -5,6 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
+import javax.persistence.criteria.CriteriaBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,45 +17,86 @@ public class StatisticDrawer {
     //BESCHRIFTUNGX: Ob die X-Achse beschriftet werden soll
     //BESCHRIFTUNGY: Ob die Y-Achse beschriftet werden soll
     //DatenBeschrX: Beschriftungen der X-Achse
-    public static Canvas drawLineDiagram(List<Double> list, double MAX_HEIGHT, double MAX_WIDTH, double PADDING, boolean BESCHRIFTUNGX, boolean BESCHRIFTUNGY, List<String> DatenBeschrX) {
+    public static Canvas drawLineDiagram(List<List<Double>> list, double MAX_HEIGHT, double MAX_WIDTH, double PADDING, boolean BESCHRIFTUNGX, boolean BESCHRIFTUNGY, List<String> DatenBeschrX, Interval interval) {
+
+        List<Double> verbrauchList = list.get(0);
+        List<Double> einspeisenList = list.get(1);
 
         // Berechne die erforderliche Gesamthöhe, beginnend bei 0
-        double requiredHeight = 0;
-        for (double i : list) {
-            requiredHeight += i;
+        double requiredHeightVerbrauch = 0;
+            requiredHeightVerbrauch += verbrauchList.getLast()-verbrauchList.getFirst();
+        double requiredHeightEinspeisen = 0;
+            requiredHeightEinspeisen = einspeisenList.getLast()-einspeisenList.getFirst();
+
+
+        double requiredHeight = Math.max(requiredHeightVerbrauch, requiredHeightEinspeisen);
+        if (requiredHeight == 0) {
+            return null;
         }
 
         // Berechne den Höhenindex, um die Höhen der Linien zu skalieren
-        double heightIndex = (MAX_HEIGHT / requiredHeight);
-        ArrayList<Double> indexedListHeight = new ArrayList<>();
-        for (double i : list) {
+        double heightIndexVerbrauch = ((MAX_HEIGHT) / requiredHeightVerbrauch);
+        ArrayList<Double> indexedListHeightVerbrauch = new ArrayList<>();
+        for (double i : verbrauchList) {
             // Skaliere jede Höhe in der Liste entsprechend dem Höhenindex
-            indexedListHeight.add(i * heightIndex);
+            indexedListHeightVerbrauch.add((i-verbrauchList.getFirst()) * heightIndexVerbrauch);
+        }
+        double heightIndexEinspeisen = ((MAX_HEIGHT) / requiredHeightEinspeisen);
+        ArrayList<Double> indexedListHeightEinspeisen = new ArrayList<>();
+        for (double i : einspeisenList) {
+            // Skaliere jede Höhe in der Liste entsprechend dem Höhenindex
+            indexedListHeightEinspeisen.add((i-einspeisenList.getFirst()) * heightIndexEinspeisen);
         }
 
         // Berechne die Breite pro Intervall basierend auf der Anzahl der Elemente in der Liste
-        double WIDTH_PER_INTERVAL = MAX_WIDTH / (list.size()-1);
+        double WIDTH_PER_INTERVAL = MAX_WIDTH / (Math.max(verbrauchList.size(), einspeisenList.size()) - 1);
         // Erstelle eine neue Canvas mit den angegebenen Breiten und Höhen plus Padding
         Canvas canvas = new Canvas(MAX_WIDTH + PADDING + 40, MAX_HEIGHT + PADDING + 40);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
         // Setze die Startposition der Höhe unter Berücksichtigung des Paddings und der ersten Höhe in der skalierten Liste
-        double height = canvas.getHeight() - PADDING - indexedListHeight.get(0);
-        double width = 0;
-        gc.fillOval(width - 3+PADDING, height - 3, 5, 5);
+        double height = canvas.getHeight() - PADDING - indexedListHeightVerbrauch.getFirst();
+        double width = PADDING;
+        gc.fillOval(width - 3, height - 3, 5, 5);
+        //double newHeight = height;
+        gc.setFont(Font.font(30));
+        // Zeichne die Linien und Punkte basierend auf den skalierten Höhen und Breiten für Verbrauch
+        for (int i = 1; i < indexedListHeightVerbrauch.size(); i++) {
+            // Berechne die neuen Koordinaten
+            double newHeight = height - indexedListHeightVerbrauch.get(i);
+            double previousHeight = height - indexedListHeightVerbrauch.get(i - 1);
 
-        // Zeichne die Linien und Punkte basierend auf den skalierten Höhen und Breiten
-        for (int i = 1; i < indexedListHeight.size(); i++) {
-            // Zeichne eine Linie vom aktuellen Punkt zum nächsten
-            gc.strokeLine(width + PADDING, height, width + WIDTH_PER_INTERVAL + PADDING, (height - indexedListHeight.get(i)));
-            // Aktualisiere die Höhe für den nächsten Punkt
-            height -= indexedListHeight.get(i);
+            // Zeichne eine Linie vom vorherigen Punkt zum aktuellen Punkt
+            gc.strokeLine(width, previousHeight, width + WIDTH_PER_INTERVAL, newHeight);
+
             // Aktualisiere die Breite für den nächsten Punkt
             width += WIDTH_PER_INTERVAL;
+
             // Zeichne einen Punkt am aktuellen Punkt
-            gc.fillOval(width - 3+PADDING, height - 3, 5, 5);
+           // gc.fillOval(width - 3, newHeight - 3, 5, 5);
         }
 
+        height = canvas.getHeight() - PADDING;
+        width = PADDING;
+        gc.setStroke(Color.RED);
+        gc.fillOval(width - 3, height - indexedListHeightEinspeisen.getFirst() - 3, 5, 5);
+
+        // Zeichne die Linien und Punkte basierend auf den skalierten Höhen und Breiten für Einspeisen
+        double maxheight = 0;
+        for (int i = 1; i < indexedListHeightVerbrauch.size(); i++) {
+            // Berechne die neuen Koordinaten
+            double newHeight = height - indexedListHeightEinspeisen.get(i);
+            double previousHeight = height - indexedListHeightEinspeisen.get(i - 1);
+
+            // Zeichne eine Linie vom vorherigen Punkt zum aktuellen Punkt
+            gc.strokeLine(width, previousHeight, width + WIDTH_PER_INTERVAL, newHeight);
+
+            // Aktualisiere die Breite für den nächsten Punkt
+            width += WIDTH_PER_INTERVAL;
+            maxheight = newHeight;
+        }
+        gc.setFont(Font.font(8));
+        gc.setStroke(Color.BLACK);
         // Anzahl der Unterteilungen für die X- und Y-Achsenbeschriftungen
         int UNTERTEILUNGENY = 10;
 
@@ -69,14 +111,30 @@ public class StatisticDrawer {
             gc.fillText("0", (double) PADDING / 5, canvas.getHeight() - PADDING);
             for (int i = 1; i < UNTERTEILUNGENY + 1; i++) {
                 // Zeichne Markierungen und Beschriftungen auf der Y-Achse
-                gc.strokeLine(PADDING - 2, canvas.getHeight() - PADDING - ((requiredHeight * heightIndex / UNTERTEILUNGENY) * i), PADDING + 2, canvas.getHeight() - PADDING - ((requiredHeight * heightIndex / UNTERTEILUNGENY) * i));
-                gc.fillText(String.format("%.1f", ((requiredHeight / UNTERTEILUNGENY) * i)), PADDING / 5, canvas.getHeight() - PADDING - ((requiredHeight * heightIndex / UNTERTEILUNGENY) * i) + 5);
+                System.out.println(requiredHeight * heightIndexVerbrauch + " dfs");
+                System.out.println(MAX_HEIGHT);
+                System.out.println(maxheight);
+                double height2 = canvas.getHeight() - maxheight;
+                gc.strokeLine(PADDING - 2, canvas.getHeight() - PADDING - ((requiredHeight * heightIndexVerbrauch / UNTERTEILUNGENY) * i), PADDING + 2, canvas.getHeight() - PADDING - ((requiredHeight * heightIndexVerbrauch / UNTERTEILUNGENY) * i));
+                gc.fillText(String.format("%.1f",verbrauchList.getFirst()+ ((requiredHeightVerbrauch / UNTERTEILUNGENY) * i))+"/" + String.format("%.1f",einspeisenList.getFirst()+ ((requiredHeightEinspeisen / UNTERTEILUNGENY) * i)), PADDING / 5, canvas.getHeight() - PADDING - ((requiredHeight * heightIndexVerbrauch / UNTERTEILUNGENY) * i) + 5);
             }
         }
 
         // Zeichne Beschriftungen auf der X-Achse
         if (BESCHRIFTUNGX) {
-            int UNTERTEILUNGENX = DatenBeschrX.size()-1;
+            int index = 0;
+            for (String s:DatenBeschrX){
+                if (!s.isEmpty()){
+                    index++;
+                    System.out.println(s);
+                }
+            }
+            int UNTERTEILUNGENX = 0;
+            if (interval == Interval.WEEKLY){
+                UNTERTEILUNGENX = index-1;
+            }else {
+                UNTERTEILUNGENX = DatenBeschrX.size() - 1;
+            }
             if (UNTERTEILUNGENX > 10) {
                 gc.setFont(Font.font(10));
             }
@@ -88,8 +146,10 @@ public class StatisticDrawer {
                 if (i == 0){
                     gc.fillText(DatenBeschrX.get(i), PADDING, canvas.getHeight() - PADDING / 5);
                 }else {
-                    gc.strokeLine(((MAX_WIDTH / UNTERTEILUNGENX) * i)+PADDING, (canvas.getHeight() - PADDING - 2), ((MAX_WIDTH/ UNTERTEILUNGENX) * i)+PADDING, (canvas.getHeight() - PADDING + 2));
-                    gc.fillText(DatenBeschrX.get(i), ((MAX_WIDTH / UNTERTEILUNGENX) * i)+PADDING -10, canvas.getHeight() - PADDING / 5);
+                    if (!DatenBeschrX.get(i).isEmpty()) {
+                        gc.strokeLine(((MAX_WIDTH / UNTERTEILUNGENX) * i) + PADDING, (canvas.getHeight() - PADDING - 2), ((MAX_WIDTH / UNTERTEILUNGENX) * i) + PADDING, (canvas.getHeight() - PADDING + 2));
+                        gc.fillText(DatenBeschrX.get(i), ((MAX_WIDTH / UNTERTEILUNGENX) * i) + PADDING - 10, canvas.getHeight() - PADDING / 5);
+                    }
                 }
             }
         }
@@ -97,18 +157,30 @@ public class StatisticDrawer {
         // Zeichne die X-Achse
         gc.strokeLine(PADDING, canvas.getHeight() - PADDING, MAX_WIDTH+PADDING, canvas.getHeight() - PADDING);
         // Zeichne die Y-Achse
-        gc.strokeLine(PADDING, canvas.getHeight() - PADDING, PADDING, height);
+        gc.strokeLine(PADDING, canvas.getHeight() - PADDING, PADDING, maxheight);
 
         return canvas;
     }
-    public static Canvas drawBarChart(double WIDTH, double HEIGHT, double PADDING, List<BarChartEntry> entryList) {
+    public static Canvas drawBarChart(double WIDTH, double HEIGHT, double PADDING, List<List<BarChartEntry>> entryList, Interval interval) {
         // Berechnung der maximalen Breite für die Balken
-        double MAX_WIDTH = (WIDTH / entryList.size()) * entryList.size() - 1;
-        final double WIDTH_PER_ENTRY = MAX_WIDTH / (entryList.size() * 2);
+        if (entryList.getFirst().isEmpty()&&entryList.getLast().isEmpty()){
+            return null;
+        }
+
+        int entrySize = Math.max(entryList.getFirst().size(),entryList.getLast().size());
+
+        double MAX_WIDTH = (WIDTH / entrySize) * (entrySize - 1);
+        final double WIDTH_PER_ENTRY = (MAX_WIDTH / ((entrySize))) /3;
 
         // Bestimmung des höchsten Wertes in der Liste der Balkendiagrammeinträge
-        BarChartEntry highestEntry = Collections.max(entryList, BarChartEntry::compareTo);
-        double heightIndex = (HEIGHT / highestEntry.value);
+        BarChartEntry highestEntryEinspeisen = Collections.max(entryList.getFirst(), BarChartEntry::compareTo);
+        BarChartEntry highestEntryVerbrauch = Collections.max(entryList.getFirst(), BarChartEntry::compareTo);
+        double highestValue = Math.max(highestEntryEinspeisen.value, highestEntryVerbrauch.value);
+        if (highestValue == 0) {
+            return null;
+        }
+
+        double heightIndex = (HEIGHT / highestValue);
 
         // Erzeugung eines Canvas-Objekts, das etwas größer ist als die angegebene Breite und Höhe (wegen PADDING)
         Canvas c = new Canvas(WIDTH + PADDING + 40, HEIGHT + PADDING + 40);
@@ -119,9 +191,22 @@ public class StatisticDrawer {
         gc.setFont(Font.font(8));
 
         int y = 0;
-        for (BarChartEntry e : entryList) {
+        int index = 0;
+        List<BarChartEntry> verbrauchsliste = entryList.getLast();
+        List<BarChartEntry> einspeisenliste = entryList.getFirst();
+        List<BarChartEntry> benutzeListe;
+
+        if (einspeisenliste.isEmpty()){
+            benutzeListe = verbrauchsliste;
+            verbrauchsliste = einspeisenliste;
+        }else {
+            benutzeListe = einspeisenliste;
+        }
+
+        for (BarChartEntry e : benutzeListe) {
+            //Für Einspeisen
             // Setzt die Füllfarbe für den aktuellen Balken
-            gc.setFill(Color.rgb(100, 160, (y * (255 / entryList.size()))));
+            gc.setFill(Color.rgb(100, 160, (y * (255 / entryList.getFirst().size()))));
             double barHeight = e.value * heightIndex;
 
             // Zeichnet den Balken
@@ -130,10 +215,30 @@ public class StatisticDrawer {
             // Setzt die Füllfarbe auf Schwarz für den Text
             gc.setFill(Color.BLACK);
             gc.fillText(e.name, width, initialDrawHeight_X + 15);
-
-            // Aktualisiert die Breite für den nächsten Balken
-            width += WIDTH_PER_ENTRY * 2;
-            y++;
+            //für Verbrauch
+            gc.setFill(Color.BLACK);
+            width += WIDTH_PER_ENTRY;
+            try {
+                    double value = verbrauchsliste.get(index).value;
+                    barHeight = value * heightIndex;
+                    // Zeichnet den Balken
+                    gc.fillRect(width, initialDrawHeight_X - value * heightIndex, WIDTH_PER_ENTRY, barHeight);
+            }finally {
+                // Aktualisiert die Breite für den nächsten Balken
+                width += WIDTH_PER_ENTRY * 2;
+                y++;
+                index++;
+            }
+            if (interval == Interval.DAILY) {
+                if ((y + 1) % 8 == 0) {
+                    gc.strokeLine(width + WIDTH_PER_ENTRY / 2, initialDrawHeight_X, width + WIDTH_PER_ENTRY / 2, initialDrawHeight_X + 5);
+                }
+            }
+            if (interval == Interval.WEEKLY) {
+                if (!e.name.isEmpty()) {
+                    gc.strokeLine(width + WIDTH_PER_ENTRY / 2, initialDrawHeight_X, width + WIDTH_PER_ENTRY / 2, initialDrawHeight_X + 5);
+                }
+            }
         }
 
         // Zeichnet den Nullpunkt
@@ -147,7 +252,7 @@ public class StatisticDrawer {
         }
 
         // Zeichnet die Y-Achse
-        gc.strokeLine(PADDING, initialDrawHeight_X, PADDING, initialDrawHeight_X - (highestEntry.value * heightIndex));
+        gc.strokeLine(PADDING, initialDrawHeight_X, PADDING, initialDrawHeight_X - (highestValue * heightIndex));
 
         // Zeichnet die X-Achse
         gc.strokeLine(PADDING, initialDrawHeight_X, PADDING + MAX_WIDTH + WIDTH_PER_ENTRY, initialDrawHeight_X);

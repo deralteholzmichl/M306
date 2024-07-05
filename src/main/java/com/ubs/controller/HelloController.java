@@ -7,20 +7,17 @@ import com.ubs.Model.esl.TimePeriod;
 import com.ubs.Model.esl.ValueRow;
 import com.ubs.Model.sdat.Observation;
 import com.ubs.Model.sdat.ValidatedMeteredData;
-import com.ubs.Model.sdat.ValidatedMeteredData_12;
 import com.ubs.helper.*;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Arc;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -28,14 +25,21 @@ import javafx.stage.Stage;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.xml.bind.JAXBException;
 import java.io.File;
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.*;
 
 public class HelloController {
-    private ArrayList<Canvas> ControllerViews;
+    public DebugHelperDrawDiagram LineWievEntrys1;
+    public DebugHelperDrawDiagram LineWievEntrys2;
+
+    public List<BarChartEntry> barChartEntries;
+    public List<CombinedData> combinedEinspeisen;
+    public List<CombinedData> combinedVerbrauch;
+    public DatePicker dateSelector;
+    public ChoiceBox selector;
     private ArrayList<Canvas> BarChartViews;
     @FXML
     private Text progressText;
@@ -51,44 +55,152 @@ public class HelloController {
     private Button Button4;
     @FXML
     void drawBar(ActionEvent event) {
-        canvasIndex = 0;
         pane.getChildren().remove(canvas);
-        ArrayList<BarChartEntry> sampleList = new ArrayList<>();
-        sampleList.add(new BarChartEntry("Test1", 10));
-        sampleList.add(new BarChartEntry("Test2", 0.4));
-        sampleList.add(new BarChartEntry("Test3", 20));
-        sampleList.add(new BarChartEntry("Test4", 5));
-
-        canvas = StatisticDrawer.drawBarChart(200,200,40,sampleList);
-        canvas.setLayoutY(100);
-        pane.getChildren().add(canvas);
-
-        pane.getChildren().remove(canvas);
-        //Startwert der Grafik ist der erste Wert der jeweiligen Liste
-        //MAX_HEIGHT: Wie gross die grafik sein soll
-        //MAX_WIDTH: Wie breit die grafik sein soll
-        //PADDING: Abstand von Rand zur Grafik(links/unten) für Beschriftung -> Mind.35 für Beschriftung
-        //BESCHRIFTUNGX: Beschriftung der X-Achse
-        //BESCHRIFTUNGY: Beschriftung der Y-Achse
-        //   canvas = StatisticDrawer.drawLineDiagram(new ArrayList<>(List.of(4.0,26.0,10.0,4.0,7.9)),200.0,400.0,35.0,true,true,new ArrayList<>(List.of("12:00","12:15","12:30","12:45","13:00")));
-        canvas = BarChartViews.get(canvasIndex);
-        canvasIndex++;
-        if (canvasIndex > BarChartViews.size() - 1){
-            canvasIndex = 0;
-        }
-        canvas.setLayoutY(100);
-        pane.getChildren().add(canvas);
+        drawBarWithInterval(Interval.DAILY);
     }
+    public void drawBarWithInterval(Interval interval){
+        pane.getChildren().remove(canvas);
+        if (dateSelector.getValue() != null) {
+            String Date = dateSelector.getValue().toString();
+            List<List<BarChartEntry>> barChartData =  new ArrayList<>();
+            barChartData.add(BarChartViewGenerator(combinedEinspeisen,interval,Date));
+            barChartData.add(BarChartViewGenerator(combinedVerbrauch,interval,Date));
+            canvas = StatisticDrawer.drawBarChart(650, 400, 60, barChartData, interval);
+            if (canvas == null) {
+                progressText.setText("No Data for selected Date");
+                return;
+            }
+            pane.getChildren().remove(canvas);
+            StaticData.diagramType = "BarChart";
+            StaticData.interval = interval.toString().toLowerCase();
+            canvas.setLayoutY(100);
+            pane.getChildren().add(canvas);
+            progressText.setText(Date);
+            selector.setValue(interval.toString().toLowerCase());
+            return;
+        }
+        progressText.setText("Please select a valid Date");
+    }
+
+
+
+
     @FXML
     void delete(ActionEvent event) {
         pane.getChildren().remove(canvas);
     }
     @FXML
     private Canvas canvas = new Canvas();
+
+    void drawLineDiagramWithInterval(String drawInterval){
+        pane.getChildren().remove(canvas);
+        DebugHelperDrawDiagram data1 = LineViewGenerator(combinedVerbrauch,"Verbrauch");
+        DebugHelperDrawDiagram data2 = LineViewGenerator(combinedEinspeisen,"Einspeisen");
+        if (dateSelector.getValue() != null) {
+            String Date = dateSelector.getValue().toString();
+            ArrayList<String> dates = new ArrayList<>();
+            LocalDate date = LocalDate.parse(Date);
+            for (int i = 0; i < 7; i++) {
+                dates.add(date.plusDays(i).toString());
+            }
+
+            List<List<Double>> lines = new ArrayList<>();
+            List<Double> line = new ArrayList<>();
+            ArrayList<String> xList = new ArrayList<>();
+            ArrayList<String> usedDates = new ArrayList<>();
+
+            for (int i = 0; i < data1.xList.size(); i++) {
+                if (dates.contains(data1.xList.get(i).getFirst())) {
+                    line.addAll(data1.yList.get(i));
+                    if (usedDates.contains(data1.xList.get(i).getLast())){
+                        xList.addAll(List.of("",""));
+                    }else {
+                        xList.addAll(data1.xList.get(i));
+                        usedDates.add(data1.xList.get(i).getLast());
+                    }
+                }
+            }
+            lines.add(line);
+            line = new ArrayList<>();
+            for (int y = 0; y < data2.xList.size(); y++) {
+                if (dates.contains(data2.xList.get(y).getFirst())) {
+                    line.addAll(data2.yList.get(y));
+                    if (usedDates.contains(data2.xList.get(y).getLast())){
+                        xList.addAll(List.of("",""));
+                    }else {
+                        xList.addAll(data2.xList.get(y));
+                        usedDates.add(data2.xList.get(y).getLast());
+                    }
+                }
+            }
+            lines.add(line);
+
+            if (lines.size()<2) {
+                progressText.setText("No Data for selected Date");
+                return;
+            }else {
+                canvas = StatisticDrawer.drawLineDiagram(lines, 400, 500, 100, true, true, xList,Interval.valueOf(drawInterval.toUpperCase()));
+                if (canvas == null) {
+                    progressText.setText("No Diagram for selected Date");
+                    return;
+                }
+                canvas.setLayoutY(100);
+                pane.getChildren().add(canvas);
+                StaticData.diagramType = "LineChart";
+                StaticData.interval = drawInterval;
+                return;
+            }
+
+        }
+        progressText.setText("Please select a valid Date");
+
+    }
+
     int canvasIndex = 0;
     @FXML
     void draw(ActionEvent event) {
         pane.getChildren().remove(canvas);
+        DebugHelperDrawDiagram data1 = LineViewGenerator(combinedVerbrauch,"Verbrauch");
+        DebugHelperDrawDiagram data2 = LineViewGenerator(combinedEinspeisen,"Einspeisen");
+        System.out.println(dateSelector.getValue());
+        if (dateSelector.getValue() != null) {
+            String Date = dateSelector.getValue().toString();
+            List<List<Double>> lines = new ArrayList<>();
+            ArrayList<String> xList = new ArrayList<>();
+            for (int i = 0; i < data1.xList.size(); i++) {
+                if (data1.xList.get(i).getFirst().equals(Date)) {
+                    lines.add(data1.yList.get(i));
+                    xList = data1.xList.get(i);
+                    break;
+                }
+            }
+            for (int y = 0; y < data2.xList.size(); y++) {
+                if (data2.xList.get(y).getFirst().equals(Date)) {
+                    lines.add(data2.yList.get(y));
+                    break;
+                }
+            }
+            if (lines.size()<2) {
+                progressText.setText("No Data for selected Date");
+                return;
+            }else {
+                canvas = StatisticDrawer.drawLineDiagram(lines, 400, 500, 100, true, true, xList, Interval.DAILY);
+                if (canvas == null) {
+                    progressText.setText("No Diagram for selected Date");
+                    return;
+                }
+                pane.getChildren().remove(canvas);
+                canvas.setLayoutY(100);
+                pane.getChildren().add(canvas);
+                StaticData.diagramType = "LineChart";
+                StaticData.interval = "daily";
+                selector.setValue("daily");
+                return;
+            }
+
+        }
+        progressText.setText("Please select a valid Date");
+
         //Startwert der Grafik ist der erste Wert der jeweiligen Liste
         //MAX_HEIGHT: Wie gross die grafik sein soll
         //MAX_WIDTH: Wie breit die grafik sein soll
@@ -96,6 +208,7 @@ public class HelloController {
         //BESCHRIFTUNGX: Beschriftung der X-Achse
         //BESCHRIFTUNGY: Beschriftung der Y-Achse
      //   canvas = StatisticDrawer.drawLineDiagram(new ArrayList<>(List.of(4.0,26.0,10.0,4.0,7.9)),200.0,400.0,35.0,true,true,new ArrayList<>(List.of("12:00","12:15","12:30","12:45","13:00")));
+       /*
         canvas = ControllerViews.get(canvasIndex);
         canvasIndex++;
         if (canvasIndex > ControllerViews.size() - 1){
@@ -103,6 +216,8 @@ public class HelloController {
         }
         canvas.setLayoutY(100);
         pane.getChildren().add(canvas);
+
+        */
     }
     @FXML
     private Button Button2;
@@ -191,7 +306,6 @@ public class HelloController {
         }
 
 
-
         //Duplikate werden aussortiert für Esl files
         readedElements = new ArrayList<>();
         List<ESLBillingData> eindeutigeESLFiles = new ArrayList<>();
@@ -229,9 +343,16 @@ public class HelloController {
 
         List<CombinedData> BezugData = CombineData(eindeutigeESLFiles,validatedMeteredDataListBezug);
         List<CombinedData> EinspeisenData = CombineData(eindeutigeESLFiles,validatedMeteredDataListEinspeisen);
-        LineViewGenerator(BezugData,Interval.DAILY);
+
+
+
+
+        this.combinedVerbrauch = BezugData;
+        this.combinedEinspeisen = EinspeisenData;
+        //LineViewGenerator(BezugData,Interval.DAILY);
+
         //date can be null if Interval is not DAILY
-        BarChartViewGenerator(EinspeisenData, Interval.DAILY,"2022-06-29T22:00:00Z");
+        //BarChartViewGenerator(EinspeisenData, Interval.DAILY,"2022-06-29T22:00:00Z");
 
         System.out.println(EinspeisenData);
         System.out.println(BezugData);
@@ -249,26 +370,70 @@ public class HelloController {
         }
         }).start();
     }
-    public void BarChartViewGenerator(List<CombinedData> BezugData, Interval interval,String datum){
+    public List<BarChartEntry> BarChartViewGenerator(List<CombinedData> BezugData,Interval interval,String datum){
         List<BarChartEntry> dhdd = new ArrayList<>();
         ArrayList<Canvas> views =  new ArrayList<>();
+        barChartEntries = new ArrayList<>();
         if (interval == Interval.DAILY){
             for (CombinedData c:BezugData){
                 for (ValidatedMeteredData v: c.getValidatedMeteredData()){
                     System.out.println(v.getMeteringData().getInterval().getEndDateTime());
-                    if (v.getMeteringData().getInterval().getEndDateTime().equals(datum)){
+                    ZonedDateTime zonedDateTime = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime());
+                    LocalDate localDate = zonedDateTime.toLocalDate();
+                    if (localDate.toString().equals(datum)){
+                        LocalTime startTime = LocalTime.of(0, 0);
+                        int index = 0;
                         for (Observation o : v.getMeteringData().getObservations()) {
-                            BarChartEntry bce = new BarChartEntry("", o.getVolume());
+                            String EintragZeit;
+                            if ((index + 1) % 8 == 0){
+                                EintragZeit = startTime.toString();
+                            }else {
+                                EintragZeit = "";
+                            }
+                            BarChartEntry bce = new BarChartEntry(EintragZeit, o.getVolume());
+                            startTime = startTime.plusMinutes(15);
+                            index++;
                             dhdd.add(bce);
                         }
                     }
                 }
             }
             if (!dhdd.isEmpty()) {
-                views.add(StatisticDrawer.drawBarChart(400, 300, 60, dhdd));
-                System.out.println(views.size());
+                return dhdd;
+            }else{
+                return new ArrayList<>();
             }
-        }else {
+        } else if (interval == Interval.WEEKLY) {
+            List<String> dates = new ArrayList<>();
+            for (int i = 0; i < 7; i++) {
+                dates.add(LocalDate.parse(datum).plusDays(i).toString());
+            }
+            for (CombinedData c:BezugData){
+                for (ValidatedMeteredData v: c.getValidatedMeteredData()){
+                    ZonedDateTime zonedDateTime = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime());
+                    LocalDate localDate = zonedDateTime.toLocalDate();
+                    if (dates.contains(localDate.toString())){
+                        int i = 0;
+                        for (Observation o : v.getMeteringData().getObservations()) {
+                            String date;
+                            if (i==0) {
+                                date = localDate.toString();
+                            }else{
+                                date = "";
+                            }
+                                BarChartEntry bce = new BarChartEntry(date, o.getVolume());
+                                dhdd.add(bce);
+                                i++;
+                        }
+                    }
+                }
+            }
+            if (!dhdd.isEmpty()) {
+                return dhdd;
+            }else{
+                return new ArrayList<>();
+            }
+        } else {
             for (int y = 0; y < BezugData.size(); y++) {
                 CombinedData c = BezugData.get(y);
                 if (c.getEslBillingData().getMeter().size() > 1) {
@@ -335,29 +500,56 @@ public class HelloController {
                             //     }
                         }
                     }
+                    /*
                     BarChartEntry bce = new BarChartEntry(previousTimePeriodDate + "-" + timePeriodDate, stand);
                     dhdd.add(bce);
+                     */
                 }
             }
-            views.add(StatisticDrawer.drawBarChart(400, 300, 60, dhdd));
+            //views.add(StatisticDrawer.drawBarChart(400, 300, 60, dhdd));
         }
+        /*
         if (!views.isEmpty()) {
             BarChartViews = views;
         }else{
             dhdd.add(new BarChartEntry("No Data for selected Date",0.0));
         }
+
+         */
+        return new ArrayList<>();
     }
 
-    public void LineViewGenerator(List<CombinedData> BezugData, Interval interval){
+    public DebugHelperDrawDiagram LineViewGenerator(List<CombinedData> BezugData,String fileArt){
         DebugHelperDrawDiagram dhdd = new DebugHelperDrawDiagram();
         ArrayList<Canvas> views =  new ArrayList<>();
-        if (interval == Interval.DAILY){
+        if (true){
+            int i = 0;
             for (CombinedData c:BezugData){
                 double stand = 0.0;
                 for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                    if (vr.getObis().equals("1-1:1.8.1")) {
-                        stand = Double.valueOf(vr.getValue());
-                        break;
+                    if (fileArt.equals("Verbrauch")) {
+                        if (vr.getObis().equals("1-1:1.8.1")) {
+                            stand = Double.valueOf(vr.getValue());
+                            break;
+                        }
+                    }else{
+                            if (vr.getObis().equals("1-1:2.8.1")) {
+                                stand = Double.valueOf(vr.getValue());
+                                break;
+                            }
+                    }
+                }
+                for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
+                    if (fileArt.equals("verbrauch")){
+                        if (vr.getObis().equals("1-1:1.8.2")) {
+                            stand += Double.valueOf(vr.getValue());
+                            break;
+                        }
+                    }else{
+                        if (vr.getObis().equals("1-1:2.8.2")) {
+                            stand += Double.valueOf(vr.getValue());
+                            break;
+                        }
                     }
                 }
                 for (ValidatedMeteredData v: c.getValidatedMeteredData()){
@@ -365,20 +557,21 @@ public class HelloController {
                     LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
                     ArrayList<Double> yAchsePunkte = new ArrayList<>();
                     ArrayList<String> xAchse = new ArrayList<>();
+
                     xAchse.add(validatedMetredDataDateStart.toString());
                     xAchse.add(validatedMetredDataDateEnd.toString());
+
                     for (Observation o : v.getMeteringData().getObservations()){
                         stand += Double.valueOf(o.getVolume());
                         yAchsePunkte.add(stand);
                     }
                     dhdd.yList.add(yAchsePunkte);
                     dhdd.xList.add(xAchse);
-                    views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
+                    i++;
+                    // views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
                 }
             }
         }else {
-
-
             for (int y = 0; y < BezugData.size(); y++) {
                 CombinedData c = BezugData.get(y);
                 if (c.getEslBillingData().getMeter().size() > 1) {
@@ -430,6 +623,12 @@ public class HelloController {
                             break;
                         }
                     }
+                    for (ValueRow v : c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()) {
+                        if (v.getObis().equals("1-1:1.8.2")) {
+                            stand += Double.parseDouble(v.getValue());
+                            break;
+                        }
+                    }
                     for (ValidatedMeteredData v : c.getValidatedMeteredData()) {
                         LocalDate validatedMetredDataDate = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
                         LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
@@ -445,12 +644,13 @@ public class HelloController {
                     if (!yAchsePunkte.isEmpty()) {
                         dhdd.yList.add(yAchsePunkte);
                         dhdd.xList.add(xAchse);
-                        views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
+                        //  views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
                     }
                 }
             }
         }
-        ControllerViews = views;
+        return dhdd;
+        //ControllerViews = views;
     }
 
 
@@ -466,16 +666,16 @@ public class HelloController {
 
                 LocalDateTime ESLBillingDataDateTime = LocalDateTime.parse(eslBillingDataList.get(esl).getMeter().getFirst().getTimePeriod().getFirst().getEnd());
                 LocalDate ESLBillingDataDate = ESLBillingDataDateTime.toLocalDate();
-                LocalDateTime PreviouszonedDateTime;
-                LocalDate PreviousMetredDataDate = LocalDate.of(2000,1,1);
+                LocalDateTime NextZonedDateTime;
+                LocalDate NextMetredDataDate = LocalDate.of(2100,1,1);
                 try {
-                    PreviouszonedDateTime = LocalDateTime.parse(eslBillingDataList.get(esl -1).getMeter().getFirst().getTimePeriod().getFirst().getEnd());
-                    PreviousMetredDataDate = PreviouszonedDateTime.toLocalDate();
+                    NextZonedDateTime = LocalDateTime.parse(eslBillingDataList.get(esl +1).getMeter().getFirst().getTimePeriod().getFirst().getEnd());
+                    NextMetredDataDate = NextZonedDateTime.toLocalDate();
                 } catch (Exception e) {
                     System.out.println(e);
                     System.out.println("Last Element");
                 }
-                if ((ValidatedMetredDataDate.isAfter(PreviousMetredDataDate) && (ValidatedMetredDataDate.isBefore(ESLBillingDataDate) || ValidatedMetredDataDate.equals(ESLBillingDataDate)))){
+                if (((ValidatedMetredDataDate.isAfter(ESLBillingDataDate) || ValidatedMetredDataDate.equals(ESLBillingDataDate)) && (ValidatedMetredDataDate.isBefore(NextMetredDataDate)))){
                     C.getValidatedMeteredData().add(validatedMeteredData);
                 }
             }
@@ -504,6 +704,23 @@ public class HelloController {
         Button2.setFont(new javafx.scene.text.Font("Arial", 12));
         Button3.setFont(new javafx.scene.text.Font("Arial", 12));
         Button4.setFont(new javafx.scene.text.Font("Arial", 12));
+        selector.getItems().addAll("hourly", "daily", "weekly");
+        selector.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
+              if (StaticData.diagramType.equals("LineChart")) {
+                  if (!newValue.equals(StaticData.interval)){
+                      if (newValue.equals("weekly")) {
+                          drawLineDiagramWithInterval(newValue.toString());
+                      }else{
+                          ActionEvent a = new ActionEvent();
+                         
+                           draw(a);
+                      }
+                  }
+              }else if (StaticData.diagramType.equals("BarChart")){
+                  if (!newValue.equals(StaticData.interval)){
+                      drawBarWithInterval(Interval.valueOf(newValue.toString().toUpperCase()));
+                  }
+              }
+        });
     }
-
 }
