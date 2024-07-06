@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Text?>
+
+<Pane fx:id="pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="800.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.ubs.controller.MainSceneController">
+    <children>
+        <Rectangle arcHeight="5.0" arcWidth="5.0" fill="#ffffff1a" height="137.0" layoutX="32.0" layoutY="38.0" stroke="BLACK" strokeType="INSIDE" width="145.0" />
+        <Button fx:id="Button2" layoutX="148.0" layoutY="435.0" mnemonicParsing="false" onAction="#draw" text="Liniendiagram Zeichnen" />
+        <Button fx:id="Button3" layoutX="481.0" layoutY="435.0" mnemonicParsing="false" onAction="#delete" text="Daten Entfernen" />
+        <Button fx:id="Button4" layoutX="313.0" layoutY="435.0" mnemonicParsing="false" onAction="#drawBar" text="Säulendiagram zeichnen" />
+        <Text fx:id="progressText" layoutX="87.0" layoutY="66.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Datum" />
+        <DatePicker fx:id="dateSelector" layoutX="54.0" layoutY="82.0" prefHeight="25.0" prefWidth="102.0" />
+        <ChoiceBox fx:id="selector" layoutX="54.0" layoutY="123.0" prefHeight="25.0" prefWidth="102.0" />
+      <Button fx:id="exportbutton" layoutX="35.0" layoutY="185.0" mnemonicParsing="false" onAction="#export" prefHeight="25.0" prefWidth="143.0" text="Daten exportieren" />
+    </children>
+</Pane>

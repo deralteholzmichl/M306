@@ -16,7 +16,7 @@ public class SceneController {
     private static double y;
     private static Parent main;
     public static void getInitialScene(Stage stage) throws IOException {
-        main = FXMLLoader.load((SceneController.class.getResource(ScenePath.Login.getPath())));
+        main = FXMLLoader.load((SceneController.class.getResource(ScenePath.StartPage.getPath())));
         Scene scene = new Scene(main);
         controlDrag(stage);
         stage.setTitle("Start");
@@ -35,7 +35,7 @@ public class SceneController {
     }
 
     public static void getMainScene(ActionEvent event) throws IOException {
-        changeScreen(event, ScenePath.Login.getPath());
+        changeScreen(event, ScenePath.MainScene.getPath());
     }
 
     public static void refreshMenu(ActionEvent event) throws IOException {

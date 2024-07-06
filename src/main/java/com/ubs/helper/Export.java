@@ -8,14 +8,18 @@ import com.ubs.Model.sdat.ValidatedMeteredData;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Export {
 
 
-    public void exportToCSV(List<CombinedData> combinedData,String fileArt) {
+    public void exportToCSV(List<CombinedData> combinedData,String fileArt, String path) {
         String sensorData = "";
         List<Data> datas = new ArrayList<>();
         if (fileArt.equals("Verbrauch")) {
@@ -34,20 +38,20 @@ public class Export {
                         break;
                     }
                 }else{
-                    if (vr.getObis().equals("1-1:1.8.2")) {
+                    if (vr.getObis().equals("1-1:2.8.1")) {
                         stand = Double.valueOf(vr.getValue());
                         break;
                     }
                 }
             }
             for (ValueRow vr : data.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                if (fileArt.equals("Einspeisen")){
-                    if (vr.getObis().equals("1-1:2.8.1")) {
+                if (fileArt.equals("Verbrauch")){
+                    if (vr.getObis().equals("1-1:1.8.2")) {
                         stand += Double.valueOf(vr.getValue());
                         break;
                     }
                 }else{
-                    if (vr.getObis().equals("1-1:2.8.2")) {
+                    if (vr.getObis().equals("1-1:2.8.1")) {
                         stand += Double.valueOf(vr.getValue());
                         break;
                     }
@@ -63,13 +67,13 @@ public class Export {
             }
         }
 
-        try (FileWriter writer = new FileWriter("C:\\Users\\leoni\\Downloads\\"+sensorData+".csv")) {
+        try (FileWriter writer = new FileWriter(path+"\\"+sensorData+".csv")) {
             // Schreibe die Kopfzeile
             writer.append("Timestamp,Value\n");
 
             // Schreibe die Datenobjekte
             for (Data data : datas) {
-                writer.append(data.getTimestamp()).append(",");
+                writer.append(toTimestamp(data.getTimestamp())).append(",");
                 writer.append(data.getValue()).append("\n");
             }
 
@@ -77,8 +81,20 @@ public class Export {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
+    public String toTimestamp(String time){
+        LocalDateTime localDateTime = LocalDateTime.parse(time);
 
+        ZoneId zoneId = ZoneId.systemDefault();
+
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+
+        Instant instant = zonedDateTime.toInstant();
+
+        long timestamp = instant.getEpochSecond();
+
+        return String.valueOf(timestamp);
     }
 
 
