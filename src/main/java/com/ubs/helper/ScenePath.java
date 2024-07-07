@@ -4,7 +4,9 @@ public enum ScenePath {
 
     Login("/com/ubs/hello-view.fxml"),
     StartPage("/com/ubs/startPage.fxml"),
-    MainScene("/com/ubs/MainScene.fxml");
+    MainScene("/com/ubs/MainScene.fxml"),
+    PreviewWindow("/com/ubs/PreviewWindow.fxml"),
+    ExportInfo("/com/ubs/ExportInfo.fxml");
 
     private final String path;
 

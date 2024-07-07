@@ -7,18 +7,31 @@ import com.ubs.Model.esl.TimePeriod;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.helper.StaticData;
 import com.ubs.helper.XmlFactory;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import javax.xml.bind.JAXBException;
 import java.io.File;
@@ -30,6 +43,8 @@ import java.util.*;
 
 public class StartPageController {
 
+    public Rectangle rectangle;
+    public Button closeButton;
     @FXML
     private Button Button1;
 
@@ -72,6 +87,7 @@ public class StartPageController {
                         Platform.runLater(() -> Button1.setDisable(false));
                         return;
                     }
+                    Platform.runLater(() -> progressBar.setVisible(true));
                     if (file.getPath().contains("EdmRegisterWertExport")) {
                         try {
                             convertedEslFiles.add(XmlFactory.convertToESLBillingData(file.getPath()));
@@ -228,9 +244,42 @@ public class StartPageController {
 
     @FXML
     void initialize() {
-        Button1.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
+        progressBar.setVisible(false);
+
+
+        // Background color with gradient
+        Background greenBackground = new Background(new BackgroundFill(
+                new LinearGradient(0, 0, 1, 1, true, null,
+                        new Stop(0, Color.rgb(58, 120, 56)),
+                        new Stop(1, Color.rgb(78, 160, 76))
+                ),
+                new CornerRadii(10), Insets.EMPTY));
+        Button1.setBackground(greenBackground);
+
+        // Text color and font
         Button1.setTextFill(Color.WHITE);
-        Button1.setFont(new javafx.scene.text.Font("Arial", 12));
+        Button1.setFont(Font.font("Arial", 14));
+
+        // Padding inside the button
+        Button1.setPadding(new Insets(10, 20, 10, 20));
+
+
+        progressBar.setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+        progressBar.setStyle("-fx-accent: #3a7838;");
+
+        progressText.setFont(Font.font("Arial", FontWeight.BOLD, 30));
+        progressText.setFill(Color.BLACK);
+
+        rectangle.setFill(Color.WHITE);
+        // Add shadow effect
+        DropShadow dropShadow = new DropShadow();
+        dropShadow.setRadius(5.0);
+        dropShadow.setOffsetX(3.0);
+        dropShadow.setOffsetY(3.0);
+        dropShadow.setColor(Color.color(0.4, 0.5, 0.5));
+        rectangle.setEffect(dropShadow);
     }
 
+    public void stop(ActionEvent actionEvent) {
+    }
 }

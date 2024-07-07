@@ -81,13 +81,8 @@ public class HelloController {
         }
         progressText.setText("Please select a valid Date");
     }
-
-
-
-
     @FXML
-    void delete(ActionEvent event) {
-        Export e = new Export();
+    void delete() {
         pane.getChildren().remove(canvas);
     }
     @FXML
@@ -691,8 +686,8 @@ public class HelloController {
         progressText.setText("Please import Files");
         progressBar.setVisible(false);
         //Initialize the Pane
-        pane.setPrefWidth(800);
-        pane.setPrefHeight(700);
+
+
         Button1.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
         Button2.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
         Button3.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
