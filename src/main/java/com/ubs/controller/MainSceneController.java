@@ -349,127 +349,49 @@ public class MainSceneController {
             int i = 0;
             for (CombinedData c:BezugData){
                 double stand = 0.0;
-                for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                    if (fileArt.equals("Verbrauch")) {
-                        if (vr.getObis().equals("1-1:1.8.1")) {
-                            stand = Double.valueOf(vr.getValue());
-                            break;
-                        }
-                    }else{
-                        if (vr.getObis().equals("1-1:2.8.1")) {
-                            stand = Double.valueOf(vr.getValue());
-                            break;
-                        }
-                    }
-                }
-                for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                    if (fileArt.equals("Verbrauch")){
-                        if (vr.getObis().equals("1-1:1.8.2")) {
-                            stand += Double.valueOf(vr.getValue());
-                            break;
-                        }
-                    }else{
-                        if (vr.getObis().equals("1-1:2.8.1")) {
-                            stand += Double.valueOf(vr.getValue());
-                            break;
+                    for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
+                        if (fileArt.equals("Verbrauch")) {
+                            if (vr.getObis().equals("1-1:1.8.1")) {
+                                stand = Double.valueOf(vr.getValue());
+                                break;
+                            }
+                        } else {
+                            if (vr.getObis().equals("1-1:2.8.1")) {
+                                stand = Double.valueOf(vr.getValue());
+                                break;
+                            }
                         }
                     }
-                }
-                for (ValidatedMeteredData v: c.getValidatedMeteredData()){
-                    LocalDate validatedMetredDataDateEnd = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
-                    LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
-                    ArrayList<Double> yAchsePunkte = new ArrayList<>();
-                    ArrayList<String> xAchse = new ArrayList<>();
-
-                    xAchse.add(validatedMetredDataDateStart.toString());
-                    xAchse.add(validatedMetredDataDateEnd.toString());
-
-                    for (Observation o : v.getMeteringData().getObservations()){
-                        stand += Double.valueOf(o.getVolume());
-                        yAchsePunkte.add(stand);
-                    }
-                    dhdd.yList.add(yAchsePunkte);
-                    dhdd.xList.add(xAchse);
-                    i++;
-                    // views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
-                }
-            }
-        }else {
-            for (int y = 0; y < BezugData.size(); y++) {
-                CombinedData c = BezugData.get(y);
-                if (c.getEslBillingData().getMeter().size() > 1) {
-                    ArrayList<String> timePeriodsEnd = new ArrayList<>();
-                    for (TimePeriod tp : c.getEslBillingData().getMeter().getFirst().getTimePeriod()) {
-                        timePeriodsEnd.add(tp.getEnd());
-                    }
-                    for (int m = 1; m < c.getEslBillingData().getMeter().size(); m++) {
-                        for (TimePeriod tp : c.getEslBillingData().getMeter().get(m).getTimePeriod()) {
-                            //     if (!timePeriodsEnd.contains(tp.getEnd())){
-                            c.getEslBillingData().getMeter().getFirst().getTimePeriod().add(tp);
-                        }
-                        //     }
-                    }
-                }
-                List<TimePeriod> timePeriods = BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod();
-                List<String> usedTimePeriods = new ArrayList<>();
-                for (TimePeriod tp : timePeriods) {
-                    if (usedTimePeriods.contains(tp.getEnd())) {
-                        timePeriods.remove(tp);
-                    } else {
-                        usedTimePeriods.add(tp.getEnd());
-                    }
-                }
-
-                for (int t = timePeriods.size() - 1; t >= 0; t--) {
-                    LocalDate timePeriodDate = LocalDateTime.parse(timePeriods.get(t).getEnd()).toLocalDate();
-                    LocalDate previousTimePeriodDate;
-                    ArrayList<Double> yAchsePunkte = new ArrayList<>();
-                    ArrayList<String> xAchse = new ArrayList<>();
-                    try {
-                        previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod().get(t + 1).getEnd()).toLocalDate();
-                        xAchse.add(previousTimePeriodDate.toString());
-
-                    } catch (Exception e) {
-                        try {
-                            previousTimePeriodDate = LocalDateTime.parse(BezugData.get(y - 1).getEslBillingData().getMeter().getFirst().getTimePeriod().getFirst().getEnd()).toLocalDate();
-                            xAchse.add(previousTimePeriodDate.toString());
-                        } catch (Exception e1) {
-                            xAchse.add("");
-                            previousTimePeriodDate = LocalDate.of(1900, 1, 1);
-                        }
-                    }
-                    xAchse.add(LocalDateTime.parse(c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getEnd()).toLocalDate().toString());
-                    Double stand = 0.0;
-                    for (ValueRow v : c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()) {
-                        if (v.getObis().equals("1-1:1.8.1")) {
-                            stand = Double.valueOf(v.getValue());
-                            break;
-                        }
-                    }
-                    for (ValueRow v : c.getEslBillingData().getMeter().getFirst().getTimePeriod().get(t).getValueRow()) {
-                        if (v.getObis().equals("1-1:1.8.2")) {
-                            stand += Double.parseDouble(v.getValue());
-                            break;
+                    for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
+                        if (fileArt.equals("Verbrauch")) {
+                            if (vr.getObis().equals("1-1:1.8.2")) {
+                                stand += Double.valueOf(vr.getValue());
+                                break;
+                            }
+                        } else {
+                            if (vr.getObis().equals("1-1:2.8.1")) {
+                                stand += Double.valueOf(vr.getValue());
+                                break;
+                            }
                         }
                     }
                     for (ValidatedMeteredData v : c.getValidatedMeteredData()) {
-                        LocalDate validatedMetredDataDate = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
+                        LocalDate validatedMetredDataDateEnd = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
                         LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
-                        if (validatedMetredDataDate.isAfter(previousTimePeriodDate) && (validatedMetredDataDate.isBefore(timePeriodDate) || validatedMetredDataDate.equals(timePeriodDate))) {
-                            //   if (validatedMetredDataDateStart.isAfter(previousTimePeriodDate)|| validatedMetredDataDateStart.equals(previousTimePeriodDate)) {
-                            for (Observation o : v.getMeteringData().getObservations()) {
-                                stand += Double.valueOf(o.getVolume());
-                                yAchsePunkte.add(stand);
-                            }
-                            //     }
+                        ArrayList<Double> yAchsePunkte = new ArrayList<>();
+                        ArrayList<String> xAchse = new ArrayList<>();
+
+                        xAchse.add(validatedMetredDataDateStart.toString());
+                        xAchse.add(validatedMetredDataDateEnd.toString());
+
+                        for (Observation o : v.getMeteringData().getObservations()) {
+                            stand += Double.valueOf(o.getVolume());
+                            yAchsePunkte.add(stand);
                         }
-                    }
-                    if (!yAchsePunkte.isEmpty()) {
                         dhdd.yList.add(yAchsePunkte);
                         dhdd.xList.add(xAchse);
-                        //  views.add(StatisticDrawer.drawLineDiagram(yAchsePunkte, 400, 700, 60, true, true, xAchse));
+                        i++;
                     }
-                }
             }
         }
         return dhdd;
@@ -511,14 +433,14 @@ public class MainSceneController {
         );
 
         selector.setStyle(
-                "-fx-background-color: #FFFFFF; " + /* Hintergrundfarbe: Weiß */
-                        "-fx-text-fill: #333333; " + /* Textfarbe: Dunkles Grau */
-                        "-fx-font-family: 'Segoe UI', Arial, sans-serif; " + /* Schriftart */
-                        "-fx-font-size: 14px; " + /* Schriftgröße */
-                        "-fx-padding: 4px 8px; " + /* Innenabstand */
-                        "-fx-border-color: #CCCCCC; " + /* Randfarbe: Helles Grau */
-                        "-fx-border-width: 1px; " + /* Randbreite */
-                        "-fx-border-radius: 4px; " /* Randradius: Leicht größer für modernere Kanten */
+                "-fx-background-color: #FFFFFF; " +
+                        "-fx-text-fill: #333333; " +
+                        "-fx-font-family: 'Segoe UI', Arial, sans-serif; " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-padding: 4px 8px; " +
+                        "-fx-border-color: #CCCCCC; " +
+                        "-fx-border-width: 1px; " +
+                        "-fx-border-radius: 4px; "
         );
 
 
