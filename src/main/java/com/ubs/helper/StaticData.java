@@ -9,4 +9,5 @@ public class StaticData {
     public static String interval;
     public static List<CombinedData> combinedVerbrauch;
     public static List<CombinedData> combinedEinspeisen;
+    public static String exportInfoText;
 }

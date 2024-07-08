@@ -42,18 +42,23 @@ public class StatisticDrawer {
         double heightIndexVerbrauch = ((MAX_HEIGHT) / requiredHeightVerbrauch);
         ArrayList<Double> indexedListHeightVerbrauch = new ArrayList<>();
         for (double i : verbrauchList) {
-            // Skaliere jede Höhe in der Liste entsprechend dem Höhenindex
-            indexedListHeightVerbrauch.add((i-verbrauchList.getFirst()) * heightIndexVerbrauch);
+            double wert = (i-verbrauchList.getFirst()) * heightIndexVerbrauch;
+            if (!(wert < 0) && ((wert) < MAX_HEIGHT + 10)){
+                indexedListHeightVerbrauch.add(wert);
+            }
         }
         double heightIndexEinspeisen = ((MAX_HEIGHT) / requiredHeightEinspeisen);
         ArrayList<Double> indexedListHeightEinspeisen = new ArrayList<>();
         for (double i : einspeisenList) {
-            // Skaliere jede Höhe in der Liste entsprechend dem Höhenindex
-            indexedListHeightEinspeisen.add((i-einspeisenList.getFirst()) * heightIndexEinspeisen);
+            double wert = (i-einspeisenList.getFirst()) * heightIndexEinspeisen;
+            if (!(wert < 0) && ((wert) < MAX_HEIGHT + 10)){
+                indexedListHeightEinspeisen.add(wert);
+            }
         }
 
         // Berechne die Breite pro Intervall basierend auf der Anzahl der Elemente in der Liste
-        double WIDTH_PER_INTERVAL = MAX_WIDTH / (Math.max(verbrauchList.size(), einspeisenList.size()) - 1);
+        double WIDTH_PER_INTERVAL_EINSPEISEN = MAX_WIDTH / (einspeisenList.size()- 1);
+        double WIDTH_PER_INTERVAL_VERBRAUCH = MAX_WIDTH / (verbrauchList.size()- 1);
         // Erstelle eine neue Canvas mit den angegebenen Breiten und Höhen plus Padding
         Canvas canvas = new Canvas(MAX_WIDTH + PADDING + 40, MAX_HEIGHT + PADDING + 40);
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -71,10 +76,10 @@ public class StatisticDrawer {
             double previousHeight = height - indexedListHeightVerbrauch.get(i - 1);
 
             // Zeichne eine Linie vom vorherigen Punkt zum aktuellen Punkt
-            gc.strokeLine(width, previousHeight, width + WIDTH_PER_INTERVAL, newHeight);
+            gc.strokeLine(width, previousHeight, width + WIDTH_PER_INTERVAL_VERBRAUCH, newHeight);
 
             // Aktualisiere die Breite für den nächsten Punkt
-            width += WIDTH_PER_INTERVAL;
+            width += WIDTH_PER_INTERVAL_VERBRAUCH;
 
             // Zeichne einen Punkt am aktuellen Punkt
            // gc.fillOval(width - 3, newHeight - 3, 5, 5);
@@ -85,16 +90,16 @@ public class StatisticDrawer {
         gc.setStroke(Color.GREEN);
         gc.fillOval(width - 3, height - indexedListHeightEinspeisen.getFirst() - 3, 5, 5);
 
-        for (int i = 1; i < indexedListHeightVerbrauch.size(); i++) {
+        for (int i = 1; i < indexedListHeightEinspeisen.size(); i++) {
             // Berechne die neuen Koordinaten
             double newHeight = height - indexedListHeightEinspeisen.get(i);
             double previousHeight = height - indexedListHeightEinspeisen.get(i - 1);
 
             // Zeichne eine Linie vom vorherigen Punkt zum aktuellen Punkt
-            gc.strokeLine(width, previousHeight, width + WIDTH_PER_INTERVAL, newHeight);
+            gc.strokeLine(width, previousHeight, width + WIDTH_PER_INTERVAL_EINSPEISEN, newHeight);
 
             // Aktualisiere die Breite für den nächsten Punkt
-            width += WIDTH_PER_INTERVAL;
+            width += WIDTH_PER_INTERVAL_EINSPEISEN;
         }
         gc.setFont(Font.font(8));
         gc.setStroke(Color.BLACK);

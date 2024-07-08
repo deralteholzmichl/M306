@@ -16,7 +16,7 @@ public class PreviewWindowController {
 
     @FXML
     public void initialize() {
-        PauseTransition pause = new PauseTransition(Duration.seconds(1));
+        PauseTransition pause = new PauseTransition(Duration.seconds(1.5));
         pause.setOnFinished(this::handlePauseFinished);
         pause.play();
     }

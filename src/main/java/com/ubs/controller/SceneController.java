@@ -6,6 +6,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -71,5 +72,20 @@ public class SceneController {
         Stage stage  = (Stage) source.getScene().getWindow();
         stage.close();
     }
+    public void showPopup(Stage owner) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(ScenePath.ExportInfo.getPath()));
+        Parent root = loader.load();
+
+        Stage popupStage = new Stage();
+        popupStage.initOwner(owner);
+        popupStage.initStyle(StageStyle.UNDECORATED);
+        popupStage.setTitle("Popup");
+
+        Scene scene = new Scene(root);
+        popupStage.setScene(scene);
+        popupStage.show();
+    }
+
+
 }
 

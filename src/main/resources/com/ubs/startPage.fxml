@@ -9,12 +9,13 @@
 
 <Pane fx:id="pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="237.0" prefWidth="523.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.ubs.controller.StartPageController">
     <children>
-        <Button fx:id="Button1" layoutX="186.0" layoutY="106.0" mnemonicParsing="false" onAction="#onHelloButtonClick" text="Daten Importieren" />
+        <Button fx:id="Button1" layoutX="265.0" layoutY="106.0" mnemonicParsing="false" onAction="#onHelloButtonClick" text="Daten Importieren" prefWidth="160.0" />
         <ProgressBar fx:id="progressBar" layoutX="121.0" layoutY="164.0" prefHeight="25.0" prefWidth="281.0" progress="0.0" />
         <Rectangle fx:id="rectangle" arcHeight="5.0" arcWidth="5.0" fill="#3a783800" height="64.0" layoutX="46.0" layoutY="20.0" stroke="BLACK" strokeType="INSIDE" width="450.0" />
         <Text fx:id="progressText" layoutX="61.0" layoutY="64.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Stromverbrauch Analysieren" textAlignment="CENTER" wrappingWidth="419.0">
             <font>
                 <Font size="32.0" />
             </font></Text>
+      <Button fx:id="beendenButton" layoutX="98.0" layoutY="106.0" mnemonicParsing="false" onAction="#onHelloButtonClick" prefWidth="160.0" text="Beenden" />
     </children>
 </Pane>

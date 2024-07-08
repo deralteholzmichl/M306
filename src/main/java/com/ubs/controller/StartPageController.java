@@ -45,6 +45,7 @@ public class StartPageController {
 
     public Rectangle rectangle;
     public Button closeButton;
+    public Button beendenButton;
     @FXML
     private Button Button1;
 
@@ -193,7 +194,6 @@ public class StartPageController {
                 System.out.println("eindeutige Files: " + readedElements.size());
                 System.out.println("Sdat Files converted: " + convertedSdatFiles.size());
                 System.out.println("Esl Files converted: " + convertedEslFiles.size());
-                //  Platform.runLater(() -> progressText.setText("Files converted: " + selectedFiles.size() + "/" + selectedFiles.size() + ":Finished"));
                 Platform.runLater(() -> progressBar.setVisible(false));
                 Platform.runLater(() -> Button1.setDisable(false));
                 Platform.runLater(() -> {
@@ -245,8 +245,6 @@ public class StartPageController {
     @FXML
     void initialize() {
         progressBar.setVisible(false);
-
-
         // Background color with gradient
         Background greenBackground = new Background(new BackgroundFill(
                 new LinearGradient(0, 0, 1, 1, true, null,
@@ -262,6 +260,22 @@ public class StartPageController {
 
         // Padding inside the button
         Button1.setPadding(new Insets(10, 20, 10, 20));
+
+        Background redBackground = new Background(new BackgroundFill(
+                new LinearGradient(0, 0, 1, 1, true, null,
+                        new Stop(0, Color.rgb(220, 20, 60)), // Startfarbe: Rot
+                        new Stop(1, Color.rgb(178, 34, 34))  // Endfarbe: Dunkelrot
+                ),
+                new CornerRadii(10), Insets.EMPTY));
+        beendenButton.setBackground(redBackground);
+
+        // Text color and font
+        beendenButton.setTextFill(Color.WHITE);
+        beendenButton.setFont(Font.font("Arial", 14));
+
+        // Padding inside the button
+        beendenButton.setPadding(new Insets(10, 20, 10, 20));
+        beendenButton.setOnAction(event -> Platform.exit());
 
 
         progressBar.setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));

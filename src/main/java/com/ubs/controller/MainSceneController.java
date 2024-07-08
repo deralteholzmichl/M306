@@ -10,6 +10,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
@@ -27,9 +28,11 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -218,10 +221,12 @@ public class MainSceneController {
         if (interval == Interval.DAILY){
             for (CombinedData c:BezugData){
                 for (ValidatedMeteredData v: c.getValidatedMeteredData()){
-                    System.out.println(v.getMeteringData().getInterval().getEndDateTime());
                     ZonedDateTime zonedDateTime = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime());
-                    LocalDate localDate = zonedDateTime.toLocalDate();
-                    if (localDate.toString().equals(datum)){
+                    LocalDate localDateEnd = zonedDateTime.toLocalDate();
+                    System.out.println(localDateEnd.toString());
+                    System.out.println(datum);
+                    System.out.println("--------------------");
+                    if (localDateEnd.toString().equals(datum)){
                         LocalTime startTime = LocalTime.of(0, 0);
                         int index = 0;
                         for (Observation o : v.getMeteringData().getObservations()) {
@@ -647,15 +652,24 @@ public class MainSceneController {
         pane.getChildren().add(border);
     }
 
-    public void export(ActionEvent actionEvent) {
+    public void export(ActionEvent actionEvent) throws IOException {
         Export export = new Export();
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setInitialDirectory(new File(System.getProperty("user.home")));
         Stage stage = new Stage();
         File selectedDirectory = directoryChooser.showDialog(stage);
         if (!selectedDirectory.getAbsolutePath().isEmpty()) {
-            export.exportToCSV(StaticData.combinedEinspeisen, "Einspeisen",selectedDirectory.getPath());
-            export.exportToCSV(StaticData.combinedVerbrauch, "Verbrauch",selectedDirectory.getPath());
+            try {
+                export.exportToCSV(StaticData.combinedEinspeisen, "Einspeisen", selectedDirectory.getPath());
+                export.exportToCSV(StaticData.combinedVerbrauch, "Verbrauch", selectedDirectory.getPath());
+                StaticData.exportInfoText = "Successfully exported";
+            }catch (Exception e){
+                e.printStackTrace();
+                StaticData.exportInfoText = "Export failed + " + e.getMessage();
+            }finally {
+                SceneController sc = new SceneController();
+                sc.showPopup(stage);
+            }
         }
     }
     private Background createBackground(Color color) {
