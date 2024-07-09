@@ -270,7 +270,7 @@ public class StatisticDrawer {
         }
 
         // Zeichnet den Nullpunkt
-        gc.fillText("0", PADDING - 10, initialDrawHeight_X + 5);
+            gc.fillText("0", PADDING - 10, initialDrawHeight_X + 5);
 
         // Anzahl der Unterteilungen auf der Y-Achse
         final int UNTERTEILUNGENY = 5;

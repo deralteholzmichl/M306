@@ -13,7 +13,6 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.*;
-import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Pane;
@@ -22,7 +21,6 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-import javax.persistence.criteria.CriteriaBuilder;
 import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.time.LocalDate;
@@ -30,10 +28,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.*;
-
+//DEPRECATED NEW ONE IS MAINSCENECONTROLLER
 public class HelloController {
-    public DebugHelperDrawDiagram LineWievEntrys1;
-    public DebugHelperDrawDiagram LineWievEntrys2;
+    public DiagramObject LineWievEntrys1;
+    public DiagramObject LineWievEntrys2;
 
     public List<BarChartEntry> barChartEntries;
     public List<CombinedData> combinedEinspeisen;
@@ -90,8 +88,8 @@ public class HelloController {
 
     void drawLineDiagramWithInterval(String drawInterval){
         pane.getChildren().remove(canvas);
-        DebugHelperDrawDiagram data1 = LineViewGenerator(combinedVerbrauch,"Verbrauch");
-        DebugHelperDrawDiagram data2 = LineViewGenerator(combinedEinspeisen,"Einspeisen");
+        DiagramObject data1 = LineViewGenerator(combinedVerbrauch,"Verbrauch");
+        DiagramObject data2 = LineViewGenerator(combinedEinspeisen,"Einspeisen");
         if (dateSelector.getValue() != null) {
             String Date = dateSelector.getValue().toString();
             ArrayList<String> dates = new ArrayList<>();
@@ -156,8 +154,8 @@ public class HelloController {
     @FXML
     void draw(ActionEvent event) {
         pane.getChildren().remove(canvas);
-        DebugHelperDrawDiagram data1 = LineViewGenerator(combinedVerbrauch,"Verbrauch");
-        DebugHelperDrawDiagram data2 = LineViewGenerator(combinedEinspeisen,"Einspeisen");
+        DiagramObject data1 = LineViewGenerator(combinedVerbrauch,"Verbrauch");
+        DiagramObject data2 = LineViewGenerator(combinedEinspeisen,"Einspeisen");
         System.out.println(dateSelector.getValue());
         if (dateSelector.getValue() != null) {
             String Date = dateSelector.getValue().toString();
@@ -515,8 +513,8 @@ public class HelloController {
         return new ArrayList<>();
     }
 
-    public DebugHelperDrawDiagram LineViewGenerator(List<CombinedData> BezugData,String fileArt){
-        DebugHelperDrawDiagram dhdd = new DebugHelperDrawDiagram();
+    public DiagramObject LineViewGenerator(List<CombinedData> BezugData, String fileArt){
+        DiagramObject dhdd = new DiagramObject();
         ArrayList<Canvas> views =  new ArrayList<>();
         if (true){
             int i = 0;

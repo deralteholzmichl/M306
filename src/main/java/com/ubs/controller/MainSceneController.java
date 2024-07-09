@@ -6,15 +6,12 @@ import com.ubs.Model.esl.ValueRow;
 import com.ubs.Model.sdat.Observation;
 import com.ubs.Model.sdat.ValidatedMeteredData;
 import com.ubs.helper.*;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.Background;
@@ -28,7 +25,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.Popup;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -65,7 +61,7 @@ public class MainSceneController {
     private ChoiceBox<String> selector;
 
     @FXML
-    private Canvas canvas = new Canvas(800, 415);
+    private Canvas canvas = new Canvas(815, 430);
     public List<BarChartEntry> barChartEntries;
 
     @FXML
@@ -76,8 +72,8 @@ public class MainSceneController {
     @FXML
     void drawLine(ActionEvent event) {
         pane.getChildren().remove(canvas);
-            DebugHelperDrawDiagram data1 = LineViewGenerator(StaticData.combinedVerbrauch, "Verbrauch");
-            DebugHelperDrawDiagram data2 = LineViewGenerator(StaticData.combinedEinspeisen, "Einspeisen");
+            DiagramObject data1 = LineViewGenerator(StaticData.combinedVerbrauch, "Verbrauch");
+            DiagramObject data2 = LineViewGenerator(StaticData.combinedEinspeisen, "Einspeisen");
             System.out.println(dateSelector.getValue());
             if (dateSelector.getValue() != null) {
                 String Date = dateSelector.getValue().toString();
@@ -98,11 +94,10 @@ public class MainSceneController {
                 }
                 LocalTime time = LocalTime.of(0, 0);
                 xList = new ArrayList<>();
-                for (int i = 0; i < 96; i++) {
-                    if (i %8 ==0) {
-                        xList.add(time.toString());
-                    }
-                    time = time.plusMinutes(15);
+
+                for (int i = 0; i < 13; i++) {
+                    xList.add(time.toString());
+                    time = time.plusHours(2);
                 }
                 if (lines.size() < 2) {
                     progressText.setText("No Data for Date");
@@ -128,8 +123,8 @@ public class MainSceneController {
     }
     void drawLineDiagramWithInterval(String drawInterval){
         pane.getChildren().remove(canvas);
-        DebugHelperDrawDiagram data1 = LineViewGenerator(StaticData.combinedVerbrauch,"Verbrauch");
-        DebugHelperDrawDiagram data2 = LineViewGenerator(StaticData.combinedEinspeisen,"Einspeisen");
+        DiagramObject data1 = LineViewGenerator(StaticData.combinedVerbrauch,"Verbrauch");
+        DiagramObject data2 = LineViewGenerator(StaticData.combinedEinspeisen,"Einspeisen");
         if (dateSelector.getValue() != null) {
             String Date = dateSelector.getValue().toString();
             ArrayList<String> dates = new ArrayList<>();
@@ -223,9 +218,6 @@ public class MainSceneController {
                 for (ValidatedMeteredData v: c.getValidatedMeteredData()){
                     ZonedDateTime zonedDateTime = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime());
                     LocalDate localDateEnd = zonedDateTime.toLocalDate();
-                    System.out.println(localDateEnd.toString());
-                    System.out.println(datum);
-                    System.out.println("--------------------");
                     if (localDateEnd.toString().equals(datum)){
                         LocalTime startTime = LocalTime.of(0, 0);
                         int index = 0;
@@ -289,10 +281,8 @@ public class MainSceneController {
                     }
                     for (int m = 1; m < c.getEslBillingData().getMeter().size(); m++) {
                         for (TimePeriod tp : c.getEslBillingData().getMeter().get(m).getTimePeriod()) {
-                            //     if (!timePeriodsEnd.contains(tp.getEnd())){
                             c.getEslBillingData().getMeter().getFirst().getTimePeriod().add(tp);
                         }
-                        //     }
                     }
                 }
                 List<TimePeriod> timePeriods = BezugData.get(y).getEslBillingData().getMeter().getFirst().getTimePeriod();
@@ -342,68 +332,66 @@ public class MainSceneController {
         }
         return new ArrayList<>();
     }
-    public DebugHelperDrawDiagram LineViewGenerator(List<CombinedData> BezugData,String fileArt){
-        DebugHelperDrawDiagram dhdd = new DebugHelperDrawDiagram();
+    public DiagramObject LineViewGenerator(List<CombinedData> BezugData, String fileArt){
+        DiagramObject dhdd = new DiagramObject();
         ArrayList<Canvas> views =  new ArrayList<>();
-        if (true){
             int i = 0;
-            for (CombinedData c:BezugData){
+            for (CombinedData c:BezugData) {
                 double stand = 0.0;
-                    for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                        if (fileArt.equals("Verbrauch")) {
-                            if (vr.getObis().equals("1-1:1.8.1")) {
-                                stand = Double.valueOf(vr.getValue());
-                                break;
-                            }
-                        } else {
-                            if (vr.getObis().equals("1-1:2.8.1")) {
-                                stand = Double.valueOf(vr.getValue());
-                                break;
-                            }
+                for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
+                    if (fileArt.equals("Verbrauch")) {
+                        if (vr.getObis().equals("1-1:1.8.1")) {
+                            stand = Double.valueOf(vr.getValue());
+                            break;
+                        }
+                    } else {
+                        if (vr.getObis().equals("1-1:2.8.1")) {
+                            stand = Double.valueOf(vr.getValue());
+                            break;
                         }
                     }
-                    for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
-                        if (fileArt.equals("Verbrauch")) {
-                            if (vr.getObis().equals("1-1:1.8.2")) {
-                                stand += Double.valueOf(vr.getValue());
-                                break;
-                            }
-                        } else {
-                            if (vr.getObis().equals("1-1:2.8.1")) {
-                                stand += Double.valueOf(vr.getValue());
-                                break;
-                            }
+                }
+                for (ValueRow vr : c.getEslBillingData().getMeter().getFirst().getTimePeriod().getLast().getValueRow()) {
+                    if (fileArt.equals("Verbrauch")) {
+                        if (vr.getObis().equals("1-1:1.8.2")) {
+                            stand += Double.valueOf(vr.getValue());
+                            break;
+                        }
+                    } else {
+                        if (vr.getObis().equals("1-1:2.8.1")) {
+                            stand += Double.valueOf(vr.getValue());
+                            break;
                         }
                     }
-                    for (ValidatedMeteredData v : c.getValidatedMeteredData()) {
-                        LocalDate validatedMetredDataDateEnd = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
-                        LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
-                        ArrayList<Double> yAchsePunkte = new ArrayList<>();
-                        ArrayList<String> xAchse = new ArrayList<>();
+                }
+                for (ValidatedMeteredData v : c.getValidatedMeteredData()) {
+                    LocalDate validatedMetredDataDateEnd = ZonedDateTime.parse(v.getMeteringData().getInterval().getEndDateTime()).toLocalDate();
+                    LocalDate validatedMetredDataDateStart = ZonedDateTime.parse(v.getMeteringData().getInterval().getStartDateTime()).toLocalDate();
+                    ArrayList<Double> yAchsePunkte = new ArrayList<>();
+                    ArrayList<String> xAchse = new ArrayList<>();
 
-                        xAchse.add(validatedMetredDataDateStart.toString());
-                        xAchse.add(validatedMetredDataDateEnd.toString());
+                    xAchse.add(validatedMetredDataDateStart.toString());
+                    xAchse.add(validatedMetredDataDateEnd.toString());
 
-                        for (Observation o : v.getMeteringData().getObservations()) {
-                            stand += Double.valueOf(o.getVolume());
-                            yAchsePunkte.add(stand);
-                        }
-                        dhdd.yList.add(yAchsePunkte);
-                        dhdd.xList.add(xAchse);
-                        i++;
+                    for (Observation o : v.getMeteringData().getObservations()) {
+                        stand += Double.valueOf(o.getVolume());
+                        yAchsePunkte.add(stand);
                     }
+                    dhdd.yList.add(yAchsePunkte);
+                    dhdd.xList.add(xAchse);
+                    i++;
+                }
             }
-        }
         return dhdd;
 
     }
     public void initialize() {
         progressText.setFont(Font.font("Arial", 12));
-        canvas.setLayoutY(250);
+        canvas.setLayoutY(150);
         canvas.setLayoutX(500);
 
-        int width = 800;
-        int height = 415;
+        int width = 815;
+        int height = 430;
 
         pane.setPrefWidth(width);
         pane.setMaxWidth(width);
